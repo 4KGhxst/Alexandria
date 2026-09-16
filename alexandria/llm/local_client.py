@@ -19,7 +19,7 @@ _SENSOR_LOOKUPS: list[tuple[tuple[str, ...], str]] = [
     (("fuel", "gas level", "gas tank"), "fuel_level_pct"),
     (("engine load",), "engine_load_pct"),
     (("battery", "voltage"), "battery_voltage"),
-    (("code", "dtc", "check engine", "trouble"), "dtc_codes"),
+    (("dtc", "check engine", "trouble code", "trouble codes", "error code"), "dtc_codes"),
 ]
 
 

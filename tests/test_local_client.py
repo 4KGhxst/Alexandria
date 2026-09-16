@@ -23,6 +23,16 @@ def test_falls_through_to_none_for_unrelated_query():
     assert answer is None
 
 
+def test_casual_use_of_the_word_trouble_does_not_trigger_dtc_lookup():
+    # Regression: "trouble" alone used to match the DTC keyword list, so
+    # "I'd be in trouble" falsely triggered a trouble-code readout instead
+    # of falling through to conversation.
+    answerer = LocalAnswerer()
+    snapshot = Snapshot(dtc_codes=[])
+    answer = answerer.try_answer("good thing you know yourself or I'd be in trouble", snapshot)
+    assert answer is None
+
+
 def test_returns_none_without_snapshot():
     answerer = LocalAnswerer()
     assert answerer.try_answer("what's my rpm", None) is None
