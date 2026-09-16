@@ -1,9 +1,11 @@
 # Alexandria
 
 A personality-driven AI co-pilot for a car: it monitors vehicle health,
-knows a growing library of maintenance facts and automotive trivia, and
-talks to the driver with a mood that shifts based on what's happening —
-diagnostics, conversation, and ambient conditions.
+knows a growing library of maintenance facts and automotive trivia,
+answers Alldata-style technical questions (torque specs, procedures, part
+info) straight from your vehicle's own service manual, and talks to the
+driver with a mood that shifts based on what's happening — diagnostics,
+conversation, and ambient conditions.
 
 Hardware hasn't been chosen yet, so the software core is built
 hardware-agnostic: everything runs today against a built-in OBD-II
@@ -32,6 +34,34 @@ Run the tests:
 pytest
 ```
 
+### Loading service manuals (Alldata-style Q&A)
+
+Download a factory service manual PDF for your vehicle (e.g. from
+eManualOnline or similar) and ingest it once:
+
+```bash
+python -m alexandria.manuals.ingest_cli \
+    ~/Downloads/2015-honda-civic-fsm.pdf \
+    --year 2015 --make Honda --model Civic \
+    --title "2015 Honda Civic Factory Service Manual"
+```
+
+Then tell Alexandria which vehicle it's riding in (also in `.env`):
+
+```bash
+ALEXANDRIA_VEHICLE_YEAR=2015
+ALEXANDRIA_VEHICLE_MAKE=Honda
+ALEXANDRIA_VEHICLE_MODEL=Civic
+```
+
+Technical questions ("what's the oil drain plug torque spec?", "how do I
+replace the cabin air filter?") now get answered strictly from that
+manual, with page citations. If nothing in the manual covers the
+question, Alexandria says so explicitly rather than guessing — see
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#manual-tier-alldata-style-qa)
+for why. Ingest as many manuals per vehicle as you want (factory manual,
+Haynes, a wiring supplement) — search draws from all of them.
+
 ## What's here
 
 - **Diagnostics** (`alexandria/diagnostics/`) — an OBD-II abstraction with
@@ -48,10 +78,17 @@ pytest
   maintenance facts, DTC explanations, and trivia. Ships with a small
   seed set (`alexandria/knowledge/seed_data/*.json`) — grow those files
   (or your vehicle's real service manual) to expand what Alexandria knows.
-- **LLM** (`alexandria/llm/`) — the hybrid brain. A local deterministic
-  tier answers direct sensor questions instantly and offline; everything
-  else routes to Claude with a system prompt built from persona + current
-  mood + relevant knowledge + live diagnostics.
+- **Manuals** (`alexandria/manuals/`) — an Alldata-style local library:
+  ingest a service manual PDF once (`ingest_cli.py`) and get full-text,
+  page-cited search over it forever after via SQLite FTS5, entirely
+  offline. No embeddings/vector DB or extra API needed to build or query.
+- **LLM** (`alexandria/llm/`) — the hybrid brain, three tiers. (1) Local
+  deterministic: direct sensor questions, instant and offline. (2)
+  Manual: technical/spec/procedure questions, answered strictly from the
+  ingested manual or refused if not found there — never a guessed spec.
+  (3) Cloud conversational: everything else, routed to Claude with a
+  system prompt built from persona + current mood + relevant knowledge +
+  live diagnostics.
 - **Voice** (`alexandria/voice/`) — abstract STT/TTS/wake-word interfaces
   with a `TextConsole` stand-in so the whole system runs from a terminal
   today.
@@ -68,3 +105,5 @@ Set via environment variables (see `.env.example`):
 | `ALEXANDRIA_MODEL` | `claude-sonnet-5` | Model for cloud responses |
 | `ALEXANDRIA_OBD_BACKEND` | `simulator` | `simulator` or `elm327` |
 | `ALEXANDRIA_OBD_PORT` | none | Serial port for a real ELM327 dongle |
+| `ALEXANDRIA_MANUALS_DB` | `alexandria_manuals.db` | SQLite file for the ingested manual library |
+| `ALEXANDRIA_VEHICLE_YEAR` / `_MAKE` / `_MODEL` / `_TRIM` | none | Which vehicle's manual to search (must match what you passed to `ingest_cli.py`) |

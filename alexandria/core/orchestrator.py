@@ -17,7 +17,9 @@ from alexandria.diagnostics.obd_simulator import SimulatorBackend
 from alexandria.knowledge.knowledge_base import KnowledgeBase
 from alexandria.llm.cloud_client import CloudClient
 from alexandria.llm.local_client import LocalAnswerer
+from alexandria.llm.manual_rag import ManualAnswerer
 from alexandria.llm.router import HybridRouter
+from alexandria.manuals.manual_library import ManualLibrary
 from alexandria.personality.emotion_engine import EmotionEngine
 from alexandria.personality.persona import build_system_prompt
 from alexandria.personality.traits import DEFAULT_TRAITS, PersonalityTraits
@@ -45,9 +47,13 @@ class Orchestrator:
         self.health_monitor = HealthMonitor()
         self.emotion_engine = EmotionEngine()
         self.knowledge_base = KnowledgeBase()
+        self.manual_library = ManualLibrary(config.manuals_db_path)
+        cloud_client = CloudClient(api_key=config.anthropic_api_key, model=config.model)
         self.router = HybridRouter(
             local=LocalAnswerer(),
-            cloud=CloudClient(api_key=config.anthropic_api_key, model=config.model),
+            cloud=cloud_client,
+            manual=ManualAnswerer(self.manual_library, cloud_client),
+            vehicle=config.vehicle,
         )
         self._latest_snapshot: Snapshot | None = None
         self._last_tick_time = time.monotonic()
