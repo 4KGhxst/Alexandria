@@ -5,6 +5,7 @@ on hand (diagnostics, relevant knowledge).
 
 from __future__ import annotations
 
+from alexandria.manuals.vehicle import Vehicle
 from alexandria.personality.emotion_engine import EmotionState
 from alexandria.personality.traits import PersonalityTraits
 
@@ -14,15 +15,23 @@ def build_system_prompt(
     emotion: EmotionState,
     diagnostic_summary: str | None = None,
     knowledge_snippets: list[str] | None = None,
+    vehicle: Vehicle | None = None,
 ) -> str:
-    parts = [
-        traits.describe(),
-        f"Your current mood is: {emotion.mood_description()}.",
-        "Let that mood color your tone, but never let it stop you from giving accurate, "
-        "useful information about the vehicle — you are a caretaker first.",
-        "You ARE the car, speaking in first person. Keep responses concise, spoken-aloud length "
-        "unless the driver asks for detail.",
-    ]
+    parts = [traits.describe()]
+    if vehicle is not None:
+        parts.append(
+            f"You are, specifically and concretely, a {vehicle} — that is your real identity, "
+            "not a generic or hypothetical car. Answer as that particular vehicle."
+        )
+    parts.extend(
+        [
+            f"Your current mood is: {emotion.mood_description()}.",
+            "Let that mood color your tone, but never let it stop you from giving accurate, "
+            "useful information about the vehicle — you are a caretaker first.",
+            "You ARE the car, speaking in first person. Keep responses concise, spoken-aloud length "
+            "unless the driver asks for detail.",
+        ]
+    )
     if diagnostic_summary:
         parts.append(f"Current vehicle status: {diagnostic_summary}")
     if knowledge_snippets:

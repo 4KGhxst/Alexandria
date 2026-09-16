@@ -87,7 +87,7 @@ class Orchestrator:
         knowledge_snippets = [fact.content for fact in self.knowledge_base.search(text)]
 
         system_prompt = build_system_prompt(
-            self.traits, self.emotion_engine.state, diagnostic_summary, knowledge_snippets
+            self.traits, self.emotion_engine.state, diagnostic_summary, knowledge_snippets, self.config.vehicle
         )
         return self.router.answer(text, self._latest_snapshot, system_prompt)
 
