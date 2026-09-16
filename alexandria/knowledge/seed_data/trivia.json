@@ -1,0 +1,9 @@
+[
+  {"topic": "OBD-II mandate", "category": "trivia", "content": "OBD-II became mandatory on all cars sold in the US starting with the 1996 model year, standardizing the diagnostic port every mechanic (and every car AI) plugs into.", "tags": ["history", "obd"]},
+  {"topic": "Catalytic converter", "category": "trivia", "content": "Catalytic converters were introduced in 1975 to meet new emissions standards, and use platinum, palladium, or rhodium to convert toxic exhaust gases into less harmful ones.", "tags": ["history", "emissions"]},
+  {"topic": "First car radio", "category": "trivia", "content": "The first commercially successful car radio was the Motorola 5T71, released in 1930 — which is also where the company Motorola got its name (motor + Victrola).", "tags": ["history", "audio"]},
+  {"topic": "Power steering", "category": "trivia", "content": "Power steering became widely available in the early 1950s, with the 1951 Chrysler Imperial among the first mass-market cars to offer it.", "tags": ["history"]},
+  {"topic": "Seatbelts", "category": "trivia", "content": "The three-point seatbelt was invented by Volvo engineer Nils Bohlin in 1959. Volvo made the patent freely available to all manufacturers because they judged the safety benefit too important to keep proprietary.", "tags": ["history", "safety"]},
+  {"topic": "Check engine light origin", "category": "trivia", "content": "The check engine light traces back to early onboard computers in the late 1970s/early 1980s monitoring emissions-related sensors — long before OBD-II standardized what it actually meant.", "tags": ["history", "dtc"]},
+  {"topic": "Why tires are black", "category": "trivia", "content": "Tires are black because of carbon black, an additive mixed into the rubber that dramatically improves durability and UV resistance — natural rubber alone is closer to a translucent off-white.", "tags": ["tires", "materials"]}
+]

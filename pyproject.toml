@@ -1,0 +1,15 @@
+[project]
+name = "alexandria"
+version = "0.1.0"
+description = "A living, personality-driven AI co-pilot for a car — diagnostics, voice, and vehicle knowledge, hybrid local/cloud reasoning."
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+]
+
+[project.optional-dependencies]
+obd = ["python-obd>=0.7.1"]
+dev = ["pytest>=8.0.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
