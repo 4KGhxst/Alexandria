@@ -2,23 +2,57 @@
 
 ## Design goal
 
-Hardware is undecided, but the software shouldn't wait on that decision.
-Every module that would eventually touch real hardware sits behind a small
-interface, with a working non-hardware implementation today:
+The software was built hardware-agnostic from the start, behind small
+interfaces with a working non-hardware implementation for each — that's
+now paying off as real hardware (a dedicated Windows mini PC) comes online:
 
-| Concern | Interface | Today | Real hardware later |
+| Concern | Interface | Non-hardware fallback | Real implementation |
 |---|---|---|---|
-| Vehicle sensors | `ObdBackend` (`diagnostics/obd_interface.py`) | `SimulatorBackend` | `Elm327Backend` (any standard OBD-II dongle) |
-| Speech in | `SpeechToText` (`voice/interfaces.py`) | `TextConsole` (stdin) | Platform STT (Vosk/Whisper on a Pi, Android SpeechRecognizer, iOS Speech) |
-| Speech out | `TextToSpeech` | `TextConsole` (stdout) | Platform TTS (Piper/espeak-ng, Android/iOS TTS) |
-| Wake word | `WakeWordDetector` | no-op | Porcupine/openWakeWord, or platform assistant hooks |
+| Vehicle sensors | `ObdBackend` (`diagnostics/obd_interface.py`) | `SimulatorBackend` | `Elm327Backend` — any standard ELM327 OBD-II dongle |
+| Speech in | `SpeechToText` (`voice/interfaces.py`) | `TextConsole` (stdin) | `MicrophoneVoice` — `SpeechRecognition` (Google Web Speech API) |
+| Speech out | `TextToSpeech` | `TextConsole` (stdout) | `MicrophoneVoice` — `pyttsx3` (offline, OS voices) |
+| Wake word | `WakeWordDetector` | no-op | still a no-op — see below |
 | AI reasoning | `HybridRouter` | local deterministic tier + Claude API | same, unchanged — the split is a software decision, not a hardware one |
 
-Whatever hardware you land on (Raspberry Pi + mic/speaker wired into the
-dash, an Android head unit, or a phone mount talking to the car over a
-Bluetooth OBD-II adapter), only the four interfaces above need a new
-implementation. The orchestrator, personality, and knowledge layers don't
-change.
+`voice/factory.py` picks `TextConsole` or `MicrophoneVoice` from
+`ALEXANDRIA_VOICE_MODE`, so the orchestrator never hardcodes which one is
+active. Swapping OBD backends is the same pattern via
+`ALEXANDRIA_OBD_BACKEND`. The orchestrator, personality, and knowledge
+layers don't change either way.
+
+## Voice I/O
+
+`MicrophoneVoice` (`voice/microphone_voice.py`) is real but intentionally
+minimal — it's meant to prove the end-to-end loop works on real hardware,
+not to be the final voice stack:
+
+- **STT**: `SpeechRecognition`'s default Google Web Speech recognizer.
+  Free, no API key, but needs internet and sends audio to Google — a
+  local engine (Vosk, whisper.cpp) is the natural upgrade once the setup
+  is proven out, especially for in-car use with unreliable connectivity.
+- **TTS**: `pyttsx3`, fully offline, driving whatever voices are already
+  installed on the OS (SAPI5 on Windows). Fine for testing; a
+  higher-quality/more personality-fitting voice (Piper, ElevenLabs, etc.)
+  is a later upgrade, not a blocker.
+- **Wake word**: still a no-op — `listen()` is always active whenever the
+  main loop calls it, so *any* speech near the mic gets transcribed and
+  sent to the router, not just speech directed at Alexandria. That's a
+  real limitation for actual in-car use (passengers talking to each other
+  would get treated as commands) and the next thing worth building once
+  the rest of the loop is confirmed working: Porcupine or openWakeWord
+  gate `listen()` behind an actual wake phrase.
+
+## Running persistently
+
+`scripts/windows/run_alexandria.ps1` is a restart-on-exit wrapper: it
+loads `.env`, activates the venv, and relaunches `python -m
+alexandria.main` if it ever exits, with a `STOP` sentinel file as a manual
+kill switch. Registered as a Windows Scheduled Task (trigger: at logon),
+this is what makes her survive a crash or a reboot without you opening a
+terminal — see the README for the exact Task Scheduler steps. This is
+Windows-specific by design, matching the mini PC actually in use; a Linux
+box would use systemd instead (a `.service` unit with `Restart=always`
+is the equivalent) if that ever comes up.
 
 ## Data flow
 
@@ -158,11 +192,11 @@ caller.
 
 ## Open questions / next steps
 
-- **Hardware choice.** Raspberry Pi gives the most control (real GPIO,
-  any mic/speaker, full Linux) but means building an enclosure and
-  power setup; an Android head unit or phone gets you a screen and
-  mic/speaker for free but constrains the runtime.
-- **Wake word + STT/TTS** are stubbed pending that hardware choice.
+- **Hardware choice: resolved** — a dedicated Windows mini PC. Real
+  voice I/O and a real OBD-II backend now build against that.
+- **Wake word** is still a no-op (see Voice I/O above) — the main
+  remaining gap between "works on a test bench" and "usable with other
+  people in the car."
 - **Local LLM tier** currently only covers deterministic sensor lookups.
   A true on-device model (for the "hybrid" reasoning tier to fall back to
   when offline, beyond raw sensor values) is a natural next step once

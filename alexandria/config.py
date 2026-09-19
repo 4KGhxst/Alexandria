@@ -15,6 +15,7 @@ class Config:
     obd_backend: str  # "simulator" or "elm327"
     obd_port: str | None  # serial port for elm327, e.g. "/dev/ttyUSB0"
     manuals_db_path: str  # SQLite file the ingest CLI writes to and the app reads from
+    voice_mode: str  # "text" or "microphone"
     vehicle_year: int | None
     vehicle_make: str | None
     vehicle_model: str | None
@@ -35,6 +36,7 @@ class Config:
             obd_backend=os.environ.get("ALEXANDRIA_OBD_BACKEND", "simulator"),
             obd_port=os.environ.get("ALEXANDRIA_OBD_PORT"),
             manuals_db_path=os.environ.get("ALEXANDRIA_MANUALS_DB", "alexandria_manuals.db"),
+            voice_mode=os.environ.get("ALEXANDRIA_VOICE_MODE", "text"),
             vehicle_year=int(year) if year else None,
             vehicle_make=os.environ.get("ALEXANDRIA_VEHICLE_MAKE"),
             vehicle_model=os.environ.get("ALEXANDRIA_VEHICLE_MODEL"),

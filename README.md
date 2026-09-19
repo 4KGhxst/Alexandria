@@ -62,6 +62,68 @@ question, Alexandria says so explicitly rather than guessing — see
 for why. Ingest as many manuals per vehicle as you want (factory manual,
 Haynes, a wiring supplement) — search draws from all of them.
 
+### Real voice (mic + speaker)
+
+```bash
+pip install -e ".[voice]"
+```
+```
+ALEXANDRIA_VOICE_MODE=microphone
+```
+Then `python -m alexandria.main` talks and listens through your default
+microphone/speaker instead of the terminal. Speech-to-text is Google's
+free Web Speech API via the `SpeechRecognition` package (needs internet);
+text-to-speech is `pyttsx3`, fully offline (drives the OS's own voices —
+SAPI5 on Windows). No wake word yet — it's "always listening" while
+running, so anything said near the mic gets transcribed and sent onward.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#voice-io) for the wake-word
+roadmap. On Windows, `PyAudio` (needed for microphone access) occasionally
+fails to build from source on `pip install`; if so, install a prebuilt
+wheel matching your Python version instead.
+
+### Real OBD-II hardware
+
+Plug an ELM327 dongle into the car's OBD-II port (under the dash, near
+the steering column on virtually any car from 1996+), pair it in Windows
+first if it's Bluetooth, then find which port it landed on:
+
+```bash
+pip install -e ".[obd]"
+python scripts/list_serial_ports.py
+```
+
+Sanity-check the connection on its own before running the full app:
+
+```bash
+python scripts/test_obd_connection.py COM3
+```
+
+Then point Alexandria at it:
+
+```
+ALEXANDRIA_OBD_BACKEND=elm327
+ALEXANDRIA_OBD_PORT=COM3
+```
+
+### Running persistently (Windows)
+
+`scripts/windows/run_alexandria.ps1` loads `.env`, activates the venv,
+and restarts Alexandria if she exits. Register it as a Windows Scheduled
+Task so she starts on login without a terminal window:
+
+1. Task Scheduler → **Create Task** (not "Basic Task")
+2. **General**: name it "Alexandria"
+3. **Triggers** → New → *Begin the task: At log on*
+4. **Actions** → New → *Start a program*
+   - Program: `powershell.exe`
+   - Arguments: `-ExecutionPolicy Bypass -File "C:\path\to\Alexandria\scripts\windows\run_alexandria.ps1"`
+5. **Settings**: check *"If the task fails, restart every: 1 minute"*, and
+   uncheck *"Stop the task if it runs longer than..."*
+
+To pause her without touching Task Scheduler, create an empty file named
+`STOP` in the repo root — she exits after the current run and won't
+restart until you delete it.
+
 ## What's here
 
 - **Diagnostics** (`alexandria/diagnostics/`) — an OBD-II abstraction with
@@ -89,9 +151,10 @@ Haynes, a wiring supplement) — search draws from all of them.
   (3) Cloud conversational: everything else, routed to Claude with a
   system prompt built from persona + current mood + relevant knowledge +
   live diagnostics.
-- **Voice** (`alexandria/voice/`) — abstract STT/TTS/wake-word interfaces
-  with a `TextConsole` stand-in so the whole system runs from a terminal
-  today.
+- **Voice** (`alexandria/voice/`) — abstract STT/TTS/wake-word interfaces.
+  `TextConsole` (default) runs everything from a terminal; `MicrophoneVoice`
+  (`ALEXANDRIA_VOICE_MODE=microphone`, `pip install -e ".[voice]"`) uses a
+  real mic/speaker. `factory.py` picks between them from config.
 - **Core** (`alexandria/core/`) — the event types everything else speaks,
   and the orchestrator that wires it all together.
 
@@ -107,3 +170,4 @@ Set via environment variables (see `.env.example`):
 | `ALEXANDRIA_OBD_PORT` | none | Serial port for a real ELM327 dongle |
 | `ALEXANDRIA_MANUALS_DB` | `alexandria_manuals.db` | SQLite file for the ingested manual library |
 | `ALEXANDRIA_VEHICLE_YEAR` / `_MAKE` / `_MODEL` / `_TRIM` | none | Which vehicle's manual to search (must match what you passed to `ingest_cli.py`) |
+| `ALEXANDRIA_VOICE_MODE` | `text` | `text` or `microphone` |

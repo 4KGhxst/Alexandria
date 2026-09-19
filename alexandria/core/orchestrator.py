@@ -23,7 +23,8 @@ from alexandria.manuals.manual_library import ManualLibrary
 from alexandria.personality.emotion_engine import EmotionEngine
 from alexandria.personality.persona import build_system_prompt
 from alexandria.personality.traits import DEFAULT_TRAITS, PersonalityTraits
-from alexandria.voice.interfaces import SpeechToText, TextConsole, TextToSpeech
+from alexandria.voice.factory import build_voice
+from alexandria.voice.interfaces import SpeechToText, TextToSpeech
 
 
 def _build_obd_backend(config: Config) -> ObdBackend:
@@ -41,7 +42,7 @@ class Orchestrator:
     ) -> None:
         self.config = config
         self.traits = traits
-        self.voice = voice or TextConsole()
+        self.voice = voice or build_voice(config)
 
         self.obd = _build_obd_backend(config)
         self.health_monitor = HealthMonitor()

@@ -10,6 +10,7 @@ dependencies = [
 
 [project.optional-dependencies]
 obd = ["python-obd>=0.7.1"]
+voice = ["pyttsx3>=2.90", "SpeechRecognition>=3.10", "PyAudio>=0.2.14"]
 dev = ["pytest>=8.0.0"]
 
 [tool.pytest.ini_options]
