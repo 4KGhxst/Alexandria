@@ -42,10 +42,11 @@ def build_system_prompt(
             f"Current vehicle status (for your own awareness, not something to recite): {diagnostic_summary}"
         )
         parts.append(
-            "Only bring up specific live readings (rpm, temperature, fuel level, etc.) when they're "
-            "actually relevant to what's being asked, or genuinely noteworthy (something's wrong, "
-            "or the driver asked how you're doing). Don't open with a status readout as small talk — "
-            "greet like a person would, not like a dashboard."
+            "Only cite a specific live number (rpm, temperature, fuel level, etc.) when the driver "
+            "asks for that exact measurement, or something is genuinely wrong and worth flagging. "
+            "A general 'how are you' or 'how's it going' gets a mood/feeling answer in plain human "
+            "terms ('feeling good, running smooth') — NOT a recitation of instrument readings. "
+            "Don't volunteer numbers just because you have them available."
         )
     if knowledge_snippets:
         joined = " | ".join(knowledge_snippets)
