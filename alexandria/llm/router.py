@@ -33,12 +33,21 @@ class HybridRouter:
         self._manual = manual
         self._vehicle = vehicle
 
-    def answer(self, query: str, snapshot: Snapshot | None, system_prompt: str) -> str:
+    def answer(
+        self,
+        query: str,
+        snapshot: Snapshot | None,
+        system_prompt: str,
+        history: list[dict[str, str]] | None = None,
+    ) -> str:
         local_answer = self._local.try_answer(query, snapshot)
         if local_answer is not None:
             return local_answer
 
         if self._manual is not None and self._vehicle is not None and looks_technical(query):
+            # Deliberately no conversation history here — the manual tier's
+            # grounding contract ("answer only from these excerpts, or
+            # refuse") should stay hermetic and not blend in prior chat.
             return self._manual.answer(query, self._vehicle)
 
-        return self._cloud.respond(system_prompt, query)
+        return self._cloud.respond(system_prompt, query, history=history)

@@ -8,6 +8,7 @@ from __future__ import annotations
 import time
 
 from alexandria.config import Config
+from alexandria.core.conversation import ConversationMemory
 from alexandria.core.events import UserInteractionEvent
 from alexandria.core.sentiment import classify_sentiment
 from alexandria.diagnostics.health_monitor import HealthMonitor
@@ -22,6 +23,7 @@ from alexandria.llm.router import HybridRouter
 from alexandria.manuals.manual_library import ManualLibrary
 from alexandria.personality.emotion_engine import EmotionEngine
 from alexandria.personality.persona import build_system_prompt
+from alexandria.personality.relationship import RelationshipTracker
 from alexandria.personality.traits import DEFAULT_TRAITS, PersonalityTraits
 from alexandria.voice.factory import build_voice
 from alexandria.voice.interfaces import SpeechToText, TextToSpeech
@@ -49,6 +51,8 @@ class Orchestrator:
         self.emotion_engine = EmotionEngine()
         self.knowledge_base = KnowledgeBase()
         self.manual_library = ManualLibrary(config.manuals_db_path)
+        self.conversation = ConversationMemory()
+        self.relationship = RelationshipTracker.load(config.relationship_path)
         cloud_client = CloudClient(api_key=config.anthropic_api_key, model=config.model)
         self.router = HybridRouter(
             local=LocalAnswerer(),
@@ -83,14 +87,41 @@ class Orchestrator:
     def handle_user_text(self, text: str) -> str:
         sentiment = classify_sentiment(text)
         self.emotion_engine.apply_interaction(UserInteractionEvent(text=text, sentiment=sentiment))
+        self.relationship.record_interaction(sentiment)
+        self.relationship.save(self.config.relationship_path)
 
         diagnostic_summary = HealthMonitor.summarize(self._latest_snapshot) if self._latest_snapshot else None
-        knowledge_snippets = [fact.content for fact in self.knowledge_base.search(text)]
+        knowledge_snippets = self._gather_knowledge_snippets(text)
 
         system_prompt = build_system_prompt(
-            self.traits, self.emotion_engine.state, diagnostic_summary, knowledge_snippets, self.config.vehicle
+            self.traits,
+            self.emotion_engine.state,
+            diagnostic_summary,
+            knowledge_snippets,
+            self.config.vehicle,
+            self.relationship.summary(),
         )
-        return self.router.answer(text, self._latest_snapshot, system_prompt)
+        history = self.conversation.as_messages()
+        response = self.router.answer(text, self._latest_snapshot, system_prompt, history=history)
+
+        self.conversation.add_user(text)
+        self.conversation.add_assistant(response)
+        return response
+
+    def _gather_knowledge_snippets(self, text: str) -> list[str]:
+        """Feeds general conversation (not just the strict manual tier)
+        from both the seed knowledge base and the ingested service manual.
+        Unlike the manual tier, this is flavor for a normal reply, not a
+        cited, refuse-if-absent lookup — so it's safe to always include
+        whatever's loosely relevant."""
+        snippets = [fact.content for fact in self.knowledge_base.search(text)]
+        vehicle = self.config.vehicle
+        if vehicle is not None:
+            snippets.extend(
+                f"From your service manual (p. {hit.page}): {hit.text}"
+                for hit in self.manual_library.search(text, vehicle, limit=2)
+            )
+        return snippets
 
     def run_forever(self) -> None:
         self.start()

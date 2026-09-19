@@ -6,4 +6,5 @@ venv/
 *.egg-info/
 .pytest_cache/
 *.db
+alexandria_relationship.json
 STOP

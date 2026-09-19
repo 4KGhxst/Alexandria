@@ -12,6 +12,7 @@ def _config(voice_mode: str) -> Config:
         obd_backend="simulator",
         obd_port=None,
         manuals_db_path=":memory:",
+        relationship_path=":memory:",
         voice_mode=voice_mode,
         vehicle_year=None,
         vehicle_make=None,

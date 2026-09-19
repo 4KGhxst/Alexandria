@@ -5,6 +5,8 @@ to be accurate for anything downstream of mood.
 
 from __future__ import annotations
 
+import re
+
 from alexandria.core.events import Sentiment
 
 _POSITIVE_WORDS = {"thanks", "thank", "good", "great", "love", "awesome", "nice", "appreciate", "please"}
@@ -12,7 +14,7 @@ _NEGATIVE_WORDS = {"stupid", "hate", "broken", "annoying", "bad", "worst", "ugh"
 
 
 def classify_sentiment(text: str) -> Sentiment:
-    words = set(text.lower().split())
+    words = set(re.findall(r"[a-z']+", text.lower()))
     if words & _NEGATIVE_WORDS:
         return Sentiment.NEGATIVE
     if words & _POSITIVE_WORDS:

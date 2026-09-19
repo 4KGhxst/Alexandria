@@ -62,6 +62,27 @@ question, Alexandria says so explicitly rather than guessing — see
 for why. Ingest as many manuals per vehicle as you want (factory manual,
 Haynes, a wiring supplement) — search draws from all of them.
 
+General conversation also loosely draws on the manual (once a vehicle is
+configured) — a casual "tell me about your anti-theft system" can pull
+color from the manual too, not just exact spec lookups. This path isn't
+refuse-gated like the technical tier; it's flavor for a normal reply, not
+a cited, guaranteed-accurate answer.
+
+### Personality that persists and grows
+
+- **Conversation memory** — the last ~10 exchanges are included in every
+  cloud reply, so she has continuity within a session ("what I just said")
+  instead of answering each turn cold.
+- **Emotion-driven speech style** — her current mood doesn't just get
+  named in the prompt, it comes with concrete delivery instructions
+  (shorter/clipped when worried, warmer when affectionate, terser when
+  grumpy, etc. — see `personality/speech_style.py`).
+- **Rapport that survives restarts** — `alexandria_relationship.json`
+  tracks how many times you've talked and how those interactions have
+  gone, across every run, and it's fed into her system prompt as a
+  familiarity level ("just met" → "old friends"). Delete the file to
+  reset the relationship.
+
 ### Real voice (mic + speaker)
 
 ```bash
@@ -134,8 +155,13 @@ restart until you delete it.
 - **Personality** (`alexandria/personality/`) — an emotion engine with a
   mood (valence/arousal) and named emotions (worry, affection, grumpiness,
   ...) that diagnostics, conversation, and ambient events nudge, and that
-  decays back toward baseline over time; plus static traits and a system
-  prompt builder that turns "current mood" into an actual voice.
+  decays back toward baseline over time; `speech_style.py` turns the
+  current mood into concrete delivery instructions; `relationship.py`
+  persists rapport (interaction count, sentiment history) across restarts;
+  static traits and a system prompt builder tie it all into an actual voice.
+- **Conversation memory** (`alexandria/core/conversation.py`) — a rolling
+  window of recent turns included in cloud replies for within-session
+  continuity. Session-only by design; long-term memory is `relationship.py`.
 - **Knowledge** (`alexandria/knowledge/`) — a local SQLite-backed store of
   maintenance facts, DTC explanations, and trivia. Ships with a small
   seed set (`alexandria/knowledge/seed_data/*.json`) — grow those files
@@ -169,5 +195,6 @@ Set via environment variables (see `.env.example`):
 | `ALEXANDRIA_OBD_BACKEND` | `simulator` | `simulator` or `elm327` |
 | `ALEXANDRIA_OBD_PORT` | none | Serial port for a real ELM327 dongle |
 | `ALEXANDRIA_MANUALS_DB` | `alexandria_manuals.db` | SQLite file for the ingested manual library |
+| `ALEXANDRIA_RELATIONSHIP_PATH` | `alexandria_relationship.json` | JSON file tracking rapport across restarts |
 | `ALEXANDRIA_VEHICLE_YEAR` / `_MAKE` / `_MODEL` / `_TRIM` | none | Which vehicle's manual to search (must match what you passed to `ingest_cli.py`) |
 | `ALEXANDRIA_VOICE_MODE` | `text` | `text` or `microphone` |

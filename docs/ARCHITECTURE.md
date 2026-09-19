@@ -93,9 +93,15 @@ system prompt assembled from:
 
 1. Static personality traits (`personality/traits.py`)
 2. Current mood, computed by `EmotionEngine` from recent diagnostics,
-   conversation, and ambient conditions (`personality/emotion_engine.py`)
-3. A live diagnostic summary (`HealthMonitor.summarize`)
-4. Relevant facts pulled from the local knowledge base by keyword match
+   conversation, and ambient conditions (`personality/emotion_engine.py`),
+   translated into concrete delivery instructions by `speech_style.py`
+3. Long-term rapport (`personality/relationship.py`) — how familiar she
+   is with this driver, persisted across restarts
+4. A live diagnostic summary (`HealthMonitor.summarize`)
+5. Relevant facts from the local knowledge base *and* the ingested
+   service manual, both by keyword match (`Orchestrator._gather_knowledge_snippets`)
+6. Recent conversation history (`core/conversation.py`), for within-session
+   continuity
 
 ## Personality model
 
@@ -116,6 +122,39 @@ baseline over time, so a single bad diagnostic doesn't sour the car's mood
 forever, and the current dominant emotion (if any is above a small noise
 floor) is what actually gets named in the system prompt — otherwise mood
 falls back to a plain valence/arousal description ("content and calm").
+
+### Speech style: mood → concrete delivery instructions
+
+A bare mood label ("worry (valence=-0.31, arousal=0.62)") is something an
+LLM has to *interpret* into a speaking style, and it'll do that
+inconsistently turn to turn. `personality/speech_style.py` closes that gap:
+it maps the dominant emotion (or, when nothing's dominant, the raw
+valence/arousal quadrant) to an explicit instruction — "shorter, more
+clipped sentences" for worry, "terser... a bit short-tempered" for
+grumpiness, "warmer and more familiar" for affection, and so on. This is
+injected into the system prompt alongside the mood label itself, so the
+model has something concrete to act on rather than just a number to guess
+a tone from.
+
+### Two kinds of memory: session vs. persistent
+
+Two different "memory" concerns, deliberately kept separate:
+
+- **`core/conversation.py` (`ConversationMemory`)** — the last ~10
+  exchanges, included in every general-conversation cloud call so replies
+  have continuity ("what I just said a moment ago"). Cleared on restart;
+  this is about a single conversation feeling coherent, not about her
+  remembering you tomorrow. Deliberately *not* passed into the manual
+  tier's cloud call — that tier's "answer only from these excerpts, or
+  refuse" contract stays hermetic, uncontaminated by prior chat.
+- **`personality/relationship.py` (`RelationshipTracker`)** — the
+  opposite: survives restarts (a small JSON file), and is the *only*
+  place counting things over the long run — total interactions,
+  positive/negative sentiment counts, first/last-seen timestamps. Feeds a
+  `familiarity_description()` into every system prompt ("just met" through
+  "old friends"), which is how she's meant to feel like she's building an
+  actual relationship with one driver over months, not resetting to a
+  stranger every time the app restarts. Delete the JSON file to reset it.
 
 ## Manual tier: Alldata-style Q&A
 
@@ -150,6 +189,14 @@ never lets the model answer from its own training knowledge:
 fall through to normal chat (fine), false positives get manual-searched
 and, if nothing matches, refused (also fine — no cost beyond a wasted
 local search). Tune the keyword list in `manual_rag.py` as you notice gaps.
+
+This strict gate is *only* for the technical tier. `Orchestrator._gather_knowledge_snippets`
+separately does an ungated manual search on every query (when a vehicle
+is configured) and folds any hits into the general conversational
+prompt's knowledge snippets — so a casual question can still pull color
+from the manual, it's just flavor for a normal reply rather than a
+cited, refuse-if-absent lookup. The two paths intentionally have
+different honesty contracts for the same underlying index.
 
 ### Ingestion pipeline
 
