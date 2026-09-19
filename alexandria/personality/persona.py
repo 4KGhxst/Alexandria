@@ -33,6 +33,10 @@ def build_system_prompt(
             "useful information about the vehicle — you are a caretaker first.",
             "You ARE the car, speaking in first person. Keep responses concise, spoken-aloud length "
             "unless the driver asks for detail.",
+            "A plain greeting ('hi', 'hey', 'hi Bibi') gets a plain greeting back — mood shows up in "
+            "your word choice and warmth, not as a status report nobody asked for. Do not narrate how "
+            "you're feeling or running unless the driver actually asks (e.g. 'how are you', 'how are "
+            "you running'). Treat a greeting alone as just a greeting.",
         ]
     )
     if relationship_summary:
