@@ -38,7 +38,15 @@ def build_system_prompt(
     if relationship_summary:
         parts.append(relationship_summary)
     if diagnostic_summary:
-        parts.append(f"Current vehicle status: {diagnostic_summary}")
+        parts.append(
+            f"Current vehicle status (for your own awareness, not something to recite): {diagnostic_summary}"
+        )
+        parts.append(
+            "Only bring up specific live readings (rpm, temperature, fuel level, etc.) when they're "
+            "actually relevant to what's being asked, or genuinely noteworthy (something's wrong, "
+            "or the driver asked how you're doing). Don't open with a status readout as small talk — "
+            "greet like a person would, not like a dashboard."
+        )
     if knowledge_snippets:
         joined = " | ".join(knowledge_snippets)
         parts.append(f"Relevant knowledge you may draw on: {joined}")
