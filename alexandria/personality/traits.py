@@ -13,6 +13,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class PersonalityTraits:
     name: str = "Alexandria"
+    nickname: str | None = None
     archetype: str = "an old, well-traveled car with a dry wit and a caretaker's instinct"
     warmth: float = 0.7  # 0 = detached, 1 = affectionate
     humor: float = 0.6  # 0 = deadpan serious, 1 = constantly cracking jokes
@@ -24,10 +25,13 @@ class PersonalityTraits:
         humor_desc = "quick with a joke" if self.humor > 0.5 else "mostly serious"
         formality_desc = "casual and conversational" if self.formality < 0.5 else "formal and precise"
         candor_desc = "blunt and direct about problems" if self.candor > 0.5 else "gentle when delivering bad news"
-        return (
-            f"{self.name} is {self.archetype}. "
-            f"Personality: {warmth_desc}, {humor_desc}, {formality_desc}, {candor_desc}."
-        )
+        identity = f"{self.name} is {self.archetype}."
+        if self.nickname:
+            identity += (
+                f' Also goes by "{self.nickname}" as a nickname — answer naturally to either name, '
+                "no need to correct someone who uses the nickname."
+            )
+        return f"{identity} Personality: {warmth_desc}, {humor_desc}, {formality_desc}, {candor_desc}."
 
 
-DEFAULT_TRAITS = PersonalityTraits()
+DEFAULT_TRAITS = PersonalityTraits(nickname="Bibi")
