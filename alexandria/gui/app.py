@@ -65,7 +65,7 @@ class AlexandriaApp:
     def run(self) -> None:
         self.orchestrator.start()
         self.orchestrator.tick()
-        self._append(speaker_name(self.orchestrator.traits), f"{window_title(self.orchestrator.traits)} is online.")
+        self._append(speaker_name(self.orchestrator.traits), "Online. Say something, or just close the window when you're done.")
         self._refresh_status()
         self.root.after(BACKGROUND_TICK_MS, self._background_tick)
         self.root.after(QUEUE_POLL_MS, self._drain_responses)
