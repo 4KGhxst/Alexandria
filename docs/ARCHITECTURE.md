@@ -42,6 +42,41 @@ not to be the final voice stack:
   the rest of the loop is confirmed working: Porcupine or openWakeWord
   gate `listen()` behind an actual wake phrase.
 
+## GUI front end
+
+`gui/app.py` (`AlexandriaApp`, tkinter) is a third front end alongside the
+terminal (`TextConsole`) and voice (`MicrophoneVoice`) — a real window for
+the mini PC instead of a bare shell prompt. It's built directly against
+`Orchestrator`, not through the `SpeechToText`/`TextToSpeech` interfaces:
+those model a blocking, synchronous loop (`listen()` blocks until speech,
+then `speak()`), which doesn't fit a GUI's event-driven model where the
+window has to stay responsive while a cloud call is in flight. Two
+consequences of that:
+
+- **Cloud calls run on a background thread** (`_answer_in_background`),
+  with the result handed back through a `queue.Queue` that the main
+  thread drains on a timer (`_drain_responses`, via `root.after`) — the
+  standard safe pattern for tkinter, since widgets aren't safe to touch
+  directly from a non-main thread.
+- **Sensor polling runs on its own timer** (`_background_tick`, every
+  `BACKGROUND_TICK_MS`) instead of "once per blocking `listen()` call"
+  like the terminal loop's `tick()`-per-turn does — the GUI has no
+  equivalent blocking point to hang polling off of.
+
+`gui/formatting.py` holds the pure display-formatting logic (speaker
+name, window title, status line) with no tkinter import, specifically so
+it stays unit-testable on any machine — including this project's dev
+sandbox, which has no tkinter or display at all. `gui/app.py` itself can
+only really be verified on a real machine with a display; if `import
+tkinter` fails there, Python was installed without the "tcl/tk and IDLE"
+option (the python.org Windows installer includes it by default unless
+that box gets unchecked during a custom install).
+
+Closing the window (`_on_close`) calls `Orchestrator.end_session()`, the
+same shutdown path `run_forever()` hits on `quit` — so the daily memory
+note and PDF report get saved the same way regardless of which front end
+is running.
+
 ## Running persistently
 
 `scripts/windows/run_alexandria.ps1` is a restart-on-exit wrapper: it

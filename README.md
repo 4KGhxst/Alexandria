@@ -34,6 +34,23 @@ Run the tests:
 pytest
 ```
 
+### Desktop window (instead of a terminal)
+
+```bash
+python -m alexandria.gui
+```
+
+Opens an actual window — scrolling chat log, a text box, a Send button —
+instead of a raw PowerShell/terminal prompt. Uses `tkinter`, which ships
+with the standard python.org Windows installer, so no extra install is
+needed (if `import tkinter` fails, Python was installed without the
+"tcl/tk and IDLE" option checked — rerun the installer and check it).
+Same `Orchestrator` underneath as the terminal version — same personality,
+memory, manuals, and daily reports — just a different front end. Sensor
+polling runs on a background timer instead of once per message, and
+closing the window triggers the same end-of-session save (memory note +
+daily report) as typing `quit` in the terminal does.
+
 ### Loading service manuals (Alldata-style Q&A)
 
 Download a factory service manual PDF for your vehicle (e.g. from
@@ -214,6 +231,12 @@ restart until you delete it.
   `TextConsole` (default) runs everything from a terminal; `MicrophoneVoice`
   (`ALEXANDRIA_VOICE_MODE=microphone`, `pip install -e ".[voice]"`) uses a
   real mic/speaker. `factory.py` picks between them from config.
+- **GUI** (`alexandria/gui/`) — a tkinter desktop window (`python -m
+  alexandria.gui`) as an alternative front end to the terminal: same
+  Orchestrator, chat log + text box instead of stdin/stdout. Built
+  directly against `Orchestrator` rather than the voice interfaces, since
+  a GUI's event loop doesn't fit their blocking listen()/speak() model —
+  cloud calls run on a background thread, sensor polling runs on a timer.
 - **Core** (`alexandria/core/`) — the event types everything else speaks,
   and the orchestrator that wires it all together.
 
