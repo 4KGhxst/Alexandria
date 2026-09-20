@@ -64,13 +64,30 @@ consequences of that:
   equivalent blocking point to hang polling off of.
 
 `gui/formatting.py` holds the pure display-formatting logic (speaker
-name, window title, status line) with no tkinter import, specifically so
-it stays unit-testable on any machine — including this project's dev
-sandbox, which has no tkinter or display at all. `gui/app.py` itself can
-only really be verified on a real machine with a display; if `import
-tkinter` fails there, Python was installed without the "tcl/tk and IDLE"
-option (the python.org Windows installer includes it by default unless
-that box gets unchecked during a custom install).
+name, window title, status line, `mood_color()`) with no tkinter import,
+specifically so it stays unit-testable on any machine — including this
+project's dev sandbox, which has no tkinter or display at all. `gui/theme.py`
+holds the color palette and a `ttk.Style` setup (dark background, teal
+accent, "clam" as the base ttk theme since it's the one that actually
+respects color overrides on Windows — the default theme mostly ignores
+them in favor of native chrome). Both are separate from `gui/app.py`
+itself, which can only really be verified on a real machine with a
+display; if `import tkinter` fails there, Python was installed without
+the "tcl/tk and IDLE" option (the python.org Windows installer includes
+it by default unless that box gets unchecked during a custom install).
+
+The chat log fakes "bubbles" with `Text` widget tag styling rather than a
+custom-drawn canvas: each message is inserted with a small-caps name tag
+(no background) followed by a body tag with a colored `background`,
+asymmetric left/right margins (`lmargin1/lmargin2/rmargin`) to keep the
+bubble from spanning the full width, and `justify` set right for the
+driver's messages and left for hers — enough to read as distinct chat
+bubbles without needing canvas-based rounded-rectangle drawing.
+`mood_color()` feeds the status label's text color, using the same
+valence thresholds `EmotionState.mood_description()` already uses (>0.3
+good, <-0.3 bad, otherwise neutral) so the color and the text it's
+describing never disagree — verified directly in
+`test_mood_color_matches_description_thresholds`.
 
 Closing the window (`_on_close`) calls `Orchestrator.end_session()`, the
 same shutdown path `run_forever()` hits on `quit` — so the daily memory

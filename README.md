@@ -233,10 +233,15 @@ restart until you delete it.
   real mic/speaker. `factory.py` picks between them from config.
 - **GUI** (`alexandria/gui/`) — a tkinter desktop window (`python -m
   alexandria.gui`) as an alternative front end to the terminal: same
-  Orchestrator, chat log + text box instead of stdin/stdout. Built
-  directly against `Orchestrator` rather than the voice interfaces, since
-  a GUI's event loop doesn't fit their blocking listen()/speak() model —
-  cloud calls run on a background thread, sensor polling runs on a timer.
+  Orchestrator, a dark-themed chat log (colored bubbles, her replies vs.
+  yours) + text box instead of stdin/stdout. `theme.py` holds the color
+  palette; `formatting.py` has the pure display logic (speaker name,
+  mood-colored status text) kept tkinter-free so it's unit-testable.
+  Built directly against `Orchestrator` rather than the voice interfaces,
+  since a GUI's event loop doesn't fit their blocking listen()/speak()
+  model — cloud calls run on a background thread, sensor polling runs on
+  a timer, both made safe by a lock in `Orchestrator` (see
+  `docs/ARCHITECTURE.md`).
 - **Core** (`alexandria/core/`) — the event types everything else speaks,
   and the orchestrator that wires it all together.
 

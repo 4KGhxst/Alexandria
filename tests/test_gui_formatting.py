@@ -1,7 +1,16 @@
 from alexandria.config import Config
 from alexandria.core.orchestrator import Orchestrator
-from alexandria.gui.formatting import speaker_name, status_text, window_title
+from alexandria.gui.formatting import (
+    MOOD_COLOR_BAD,
+    MOOD_COLOR_GOOD,
+    MOOD_COLOR_NEUTRAL,
+    mood_color,
+    speaker_name,
+    status_text,
+    window_title,
+)
 from alexandria.manuals.vehicle import Vehicle
+from alexandria.personality.emotion_engine import EmotionState
 from alexandria.personality.traits import PersonalityTraits
 from alexandria.voice.interfaces import TextConsole
 
@@ -59,3 +68,28 @@ def test_status_text_omits_vehicle_when_not_configured(tmp_path):
     text = status_text(orchestrator)
     assert "Mood:" in text
     assert "—" not in text
+
+
+def test_mood_color_good_for_positive_valence():
+    assert mood_color(EmotionState(valence=0.5)) == MOOD_COLOR_GOOD
+
+
+def test_mood_color_bad_for_negative_valence():
+    assert mood_color(EmotionState(valence=-0.5)) == MOOD_COLOR_BAD
+
+
+def test_mood_color_neutral_for_middling_valence():
+    assert mood_color(EmotionState(valence=0.1)) == MOOD_COLOR_NEUTRAL
+
+
+def test_mood_color_matches_description_thresholds():
+    # Should agree with EmotionState.mood_description()'s own "content"/
+    # "unhappy"/"neutral" boundaries so the status bar's color and text
+    # never contradict each other.
+    happy = EmotionState(valence=0.31)
+    assert "content" in happy.mood_description()
+    assert mood_color(happy) == MOOD_COLOR_GOOD
+
+    unhappy = EmotionState(valence=-0.31)
+    assert "unhappy" in unhappy.mood_description()
+    assert mood_color(unhappy) == MOOD_COLOR_BAD
