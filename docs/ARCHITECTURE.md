@@ -136,9 +136,7 @@ injected into the system prompt alongside the mood label itself, so the
 model has something concrete to act on rather than just a number to guess
 a tone from.
 
-### Two kinds of memory: session vs. persistent
-
-Two different "memory" concerns, deliberately kept separate:
+### Three kinds of memory, kept deliberately separate
 
 - **`core/conversation.py` (`ConversationMemory`)** — the last ~10
   exchanges, included in every general-conversation cloud call so replies
@@ -147,14 +145,62 @@ Two different "memory" concerns, deliberately kept separate:
   remembering you tomorrow. Deliberately *not* passed into the manual
   tier's cloud call — that tier's "answer only from these excerpts, or
   refuse" contract stays hermetic, uncontaminated by prior chat.
-- **`personality/relationship.py` (`RelationshipTracker`)** — the
-  opposite: survives restarts (a small JSON file), and is the *only*
-  place counting things over the long run — total interactions,
-  positive/negative sentiment counts, first/last-seen timestamps. Feeds a
-  `familiarity_description()` into every system prompt ("just met" through
-  "old friends"), which is how she's meant to feel like she's building an
-  actual relationship with one driver over months, not resetting to a
-  stranger every time the app restarts. Delete the JSON file to reset it.
+- **`personality/relationship.py` (`RelationshipTracker`)** — survives
+  restarts (a small JSON file), and is the *only* place counting things
+  over the long run — total interactions, positive/negative sentiment
+  counts, first/last-seen timestamps. Feeds a `familiarity_description()`
+  into every system prompt ("just met" through "old friends") — the
+  *shape* of the relationship, not its content. Delete the JSON file to
+  reset it.
+- **`personality/memory_log.py` (`MemoryLog`)** — the *content* of the
+  relationship: a short LLM-written summary per day (`llm/session_summary.py`
+  generates it at session end from that day's `ConversationMemory`), so
+  she can say something like "you mentioned the brakes felt soft
+  yesterday" instead of just knowing an abstract familiarity level. The
+  last few days' summaries (excluding today's own still-in-progress one)
+  get pulled into every system prompt as "what you remember from recent
+  days." Deliberately summaries, not raw transcripts — cheap to store and
+  re-inject indefinitely, and a summarization pass naturally drops routine
+  chit-chat (the model is told to respond `NOTHING NOTABLE` when a day had
+  nothing worth keeping, which `summarize_session` turns into `None` —
+  no empty or filler entries pile up).
+
+## Daily logging + PDF reports
+
+`diagnostics/daily_log.py` (`DailyLog`) records every OBD snapshot and
+diagnostic event to SQLite, grouped by calendar day — this happens
+automatically in `Orchestrator.tick()` regardless of whether anyone asks
+for it, so a full day's data is always there by the time a report gets
+requested. It's the shared backbone for two things: `MemoryLog`-style
+recall of vehicle-specific history, and `diagnostics/report_pdf.py`, which
+renders a day's `DailyStats` (min/max/avg per metric) and diagnostic
+events into a PDF with reportlab — deterministically, no LLM involved, so
+the numbers always match exactly what was logged and it works with zero
+API key.
+
+A report can be produced three ways, all calling the same
+`Orchestrator.generate_daily_report()`:
+
+1. **On demand** — `Orchestrator._maybe_handle_report_command()` matches
+   "report" or "pdf" anywhere in what the driver says and handles it
+   directly, before the request ever reaches the router. This mirrors the
+   local sensor tier's philosophy: a clearly-scoped, deterministic request
+   doesn't need to go through conversation at all.
+2. **At session end** (`Orchestrator.end_session()`) — makes sure a
+   report exists for the day even if nobody explicitly asked, which
+   matters since most sessions today start and end well within one
+   calendar day rather than running past midnight.
+3. **On day rollover** (`Orchestrator._roll_over_day_if_needed()`, called
+   from `tick()`) — if she's ever running continuously across midnight,
+   the outgoing day gets finalized into a report before logging starts
+   for the new one.
+
+All three are best-effort around a missing `reportlab` install (an
+optional dependency, `pip install -e ".[reports]"`) — `report_pdf.py`
+raises a `RuntimeError` with an actionable message rather than a bare
+`ImportError`, `_maybe_handle_report_command` surfaces that message to the
+driver, and the two automatic paths (session-end, rollover) just skip
+silently rather than crashing the main loop over an optional feature.
 
 ## Manual tier: Alldata-style Q&A
 
@@ -256,3 +302,14 @@ caller.
   Watch for real queries it misses (falls through to normal chat, which
   will answer from general knowledge rather than refusing) and add
   keywords as gaps show up.
+- **The report command's keyword match ("report"/"pdf") is the same kind
+  of hand-tuned heuristic** that caused the "trouble"/"in trouble" false
+  trigger earlier — watch for casual sentences that happen to contain
+  "report" or "pdf" without meaning to ask for one, and tighten the
+  match if that shows up in practice.
+- **Day-rollover report generation only fires if the process stays alive
+  across midnight.** Given the current operating pattern (restart on exit
+  via `run_alexandria.ps1`, not a single long-lived process), `end_session()`
+  firing at every shutdown is what actually produces most days' reports in
+  practice — the rollover path mainly matters once she's running truly
+  continuously.

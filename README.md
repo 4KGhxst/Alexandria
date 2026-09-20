@@ -82,6 +82,34 @@ a cited, guaranteed-accurate answer.
   gone, across every run, and it's fed into her system prompt as a
   familiarity level ("just met" → "old friends"). Delete the file to
   reset the relationship.
+- **Daily memory that survives restarts** — at the end of each session,
+  she writes a short 1-3 sentence memory note ("driver mentioned the
+  brakes feel soft") to `alexandria_memory.db`. The last few days' notes
+  get pulled into future sessions so she can reference "yesterday" or "a
+  few days ago" instead of starting cold every time.
+
+### Daily OBD monitoring + PDF reports
+
+Every reading and diagnostic event gets logged (by calendar day) to
+`alexandria_daily_log.db` — no setup needed, this runs automatically
+whenever she's running (against the simulator or real hardware alike).
+Ask her to save it any time:
+
+```
+you> can you save today's report
+alexandria> Done — saved today's report to reports/alexandria_report_2026-09-20.pdf.
+```
+
+This is a **deterministic, local command** — matched by keyword ("report"
+or "pdf" in what you say) and answered without touching the cloud LLM, the
+same philosophy as the local sensor tier. A report also gets generated
+automatically at the end of each session, and if she's ever left running
+across midnight, when the calendar day rolls over. Each PDF has min/max/avg
+readings (RPM, coolant temp, fuel level, battery voltage) and every
+diagnostic event logged that day, so you can track vehicle health trends
+by just opening the `reports/` folder. Requires `pip install -e ".[reports]"`
+(reportlab) — without it, she'll tell you the PDF step isn't available
+rather than silently failing.
 
 ### Real voice (mic + speaker)
 
@@ -161,7 +189,12 @@ restart until you delete it.
   static traits and a system prompt builder tie it all into an actual voice.
 - **Conversation memory** (`alexandria/core/conversation.py`) — a rolling
   window of recent turns included in cloud replies for within-session
-  continuity. Session-only by design; long-term memory is `relationship.py`.
+  continuity. Session-only by design; long-term memory is `relationship.py`
+  and `memory_log.py`.
+- **Daily logging + reports** (`alexandria/diagnostics/daily_log.py`,
+  `report_pdf.py`) — every OBD snapshot and diagnostic event gets recorded
+  per calendar day; `report_pdf.py` (optional, `pip install -e ".[reports]"`)
+  renders that into a PDF with reportlab, deterministically, no LLM involved.
 - **Knowledge** (`alexandria/knowledge/`) — a local SQLite-backed store of
   maintenance facts, DTC explanations, and trivia. Ships with a small
   seed set (`alexandria/knowledge/seed_data/*.json`) — grow those files
@@ -196,5 +229,8 @@ Set via environment variables (see `.env.example`):
 | `ALEXANDRIA_OBD_PORT` | none | Serial port for a real ELM327 dongle |
 | `ALEXANDRIA_MANUALS_DB` | `alexandria_manuals.db` | SQLite file for the ingested manual library |
 | `ALEXANDRIA_RELATIONSHIP_PATH` | `alexandria_relationship.json` | JSON file tracking rapport across restarts |
+| `ALEXANDRIA_MEMORY_LOG` | `alexandria_memory.db` | SQLite file of daily conversation-summary memory notes |
+| `ALEXANDRIA_DAILY_LOG` | `alexandria_daily_log.db` | SQLite file of per-day OBD snapshots/diagnostic events |
+| `ALEXANDRIA_REPORTS_DIR` | `reports` | Directory daily PDF reports get written to |
 | `ALEXANDRIA_VEHICLE_YEAR` / `_MAKE` / `_MODEL` / `_TRIM` | none | Which vehicle's manual to search (must match what you passed to `ingest_cli.py`) |
 | `ALEXANDRIA_VOICE_MODE` | `text` | `text` or `microphone` |

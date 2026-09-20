@@ -18,6 +18,7 @@ def build_system_prompt(
     knowledge_snippets: list[str] | None = None,
     vehicle: Vehicle | None = None,
     relationship_summary: str | None = None,
+    memory_notes: list[str] | None = None,
 ) -> str:
     parts = [traits.describe()]
     if vehicle is not None:
@@ -45,6 +46,12 @@ def build_system_prompt(
     )
     if relationship_summary:
         parts.append(relationship_summary)
+    if memory_notes:
+        joined = " | ".join(memory_notes)
+        parts.append(
+            f"What you remember from recent days (most recent first): {joined}. "
+            "Bring this up naturally if it's relevant — don't recite it like a log."
+        )
     if diagnostic_summary:
         parts.append(
             f"Current vehicle status (for your own awareness, not something to recite): {diagnostic_summary}"
