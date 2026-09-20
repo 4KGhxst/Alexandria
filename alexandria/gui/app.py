@@ -19,6 +19,13 @@ safe pattern for updating tkinter widgets from work done off the main
 thread (tkinter widgets themselves are not thread-safe to touch directly).
 Orchestrator itself is safe to call from that background thread too —
 see the lock in core/orchestrator.py.
+
+Each chat message is its own Label widget rather than a run of tagged
+text in a single Text widget — a Text widget's tag background fills the
+entire wrapped line width regardless of how short the text is, which
+makes "bubbles" that just span the window instead of hugging the message.
+A Label sizes itself to its own content (up to `wraplength`), so its
+background naturally wraps tightly around just that message.
 """
 
 from __future__ import annotations
@@ -26,7 +33,7 @@ from __future__ import annotations
 import queue
 import threading
 import tkinter as tk
-from tkinter import scrolledtext, ttk
+from tkinter import ttk
 
 from alexandria.config import Config
 from alexandria.core.orchestrator import Orchestrator
@@ -80,21 +87,17 @@ class AlexandriaApp:
         log_frame = tk.Frame(self.root, bg=theme.PANEL_BG)
         log_frame.pack(fill="both", expand=True, padx=16, pady=10)
 
-        self.log = scrolledtext.ScrolledText(
-            log_frame,
-            state="disabled",
-            wrap="word",
-            font=(theme.FONT_FAMILY, 10),
-            bg=theme.PANEL_BG,
-            fg=theme.ASSISTANT_TEXT,
-            insertbackground=theme.ASSISTANT_TEXT,
-            borderwidth=0,
-            highlightthickness=0,
-            padx=10,
-            pady=10,
-        )
-        self.log.pack(fill="both", expand=True)
-        self._configure_log_tags()
+        self.log_canvas = tk.Canvas(log_frame, bg=theme.PANEL_BG, borderwidth=0, highlightthickness=0)
+        log_scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_canvas.yview)
+        self.log_canvas.configure(yscrollcommand=log_scrollbar.set)
+        log_scrollbar.pack(side="right", fill="y")
+        self.log_canvas.pack(side="left", fill="both", expand=True)
+
+        self.messages_frame = tk.Frame(self.log_canvas, bg=theme.PANEL_BG)
+        self._messages_window = self.log_canvas.create_window((0, 0), window=self.messages_frame, anchor="nw")
+        self.messages_frame.bind("<Configure>", self._on_messages_frame_resize)
+        self.log_canvas.bind("<Configure>", self._on_canvas_resize)
+        self.log_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
 
         entry_frame = tk.Frame(self.root, bg=theme.BG)
         entry_frame.pack(fill="x", padx=16, pady=(0, 16))
@@ -109,54 +112,20 @@ class AlexandriaApp:
         )
         self.send_button.pack(side="left", padx=(10, 0))
 
-    def _configure_log_tags(self) -> None:
-        name_font = (theme.FONT_FAMILY, 8, "bold")
-        bubble_font = (theme.FONT_FAMILY, 10)
+    def _on_messages_frame_resize(self, _event: object) -> None:
+        self.log_canvas.configure(scrollregion=self.log_canvas.bbox("all"))
 
-        self.log.tag_configure(
-            "user_name",
-            foreground=theme.NAME_LABEL,
-            font=name_font,
-            justify="right",
-            rmargin=10,
-            spacing1=10,
-        )
-        self.log.tag_configure(
-            "user_bubble",
-            background=theme.USER_BUBBLE_BG,
-            foreground=theme.USER_TEXT,
-            font=bubble_font,
-            justify="right",
-            lmargin1=80,
-            lmargin2=80,
-            rmargin=10,
-            spacing3=6,
-        )
-        self.log.tag_configure(
-            "assistant_name",
-            foreground=theme.NAME_LABEL,
-            font=name_font,
-            justify="left",
-            lmargin1=10,
-            lmargin2=10,
-            spacing1=10,
-        )
-        self.log.tag_configure(
-            "assistant_bubble",
-            background=theme.ASSISTANT_BUBBLE_BG,
-            foreground=theme.ASSISTANT_TEXT,
-            font=bubble_font,
-            justify="left",
-            lmargin1=10,
-            lmargin2=10,
-            rmargin=80,
-            spacing3=6,
-        )
+    def _on_canvas_resize(self, event: object) -> None:
+        self.log_canvas.itemconfig(self._messages_window, width=event.width)
+
+    def _on_mousewheel(self, event: object) -> None:
+        self.log_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def run(self) -> None:
         self.orchestrator.start()
         self.orchestrator.tick()
-        self._append_assistant(
+        self._append_bubble(
+            "assistant",
             speaker_name(self.orchestrator.traits),
             "Online. Say something, or just close the window when you're done.",
         )
@@ -170,7 +139,7 @@ class AlexandriaApp:
         if not text:
             return
         self.entry.delete(0, "end")
-        self._append_user(text)
+        self._append_bubble("user", "You", text)
         self.send_button.config(state="disabled")
         threading.Thread(target=self._answer_in_background, args=(text,), daemon=True).start()
 
@@ -182,7 +151,7 @@ class AlexandriaApp:
         try:
             while True:
                 response = self._responses.get_nowait()
-                self._append_assistant(speaker_name(self.orchestrator.traits), response)
+                self._append_bubble("assistant", speaker_name(self.orchestrator.traits), response)
                 self.send_button.config(state="normal")
                 self._refresh_status()
         except queue.Empty:
@@ -194,19 +163,44 @@ class AlexandriaApp:
         self._refresh_status()
         self.root.after(BACKGROUND_TICK_MS, self._background_tick)
 
-    def _append_user(self, text: str) -> None:
-        self.log.config(state="normal")
-        self.log.insert("end", "You\n", "user_name")
-        self.log.insert("end", f"{text}\n\n", "user_bubble")
-        self.log.see("end")
-        self.log.config(state="disabled")
+    def _append_bubble(self, role: str, speaker: str, text: str) -> None:
+        is_user = role == "user"
+        side = "e" if is_user else "w"
 
-    def _append_assistant(self, speaker: str, text: str) -> None:
-        self.log.config(state="normal")
-        self.log.insert("end", f"{speaker}\n", "assistant_name")
-        self.log.insert("end", f"{text}\n\n", "assistant_bubble")
-        self.log.see("end")
-        self.log.config(state="disabled")
+        row = tk.Frame(self.messages_frame, bg=theme.PANEL_BG)
+        row.pack(fill="x", padx=6, pady=(8, 0))
+
+        column = tk.Frame(row, bg=theme.PANEL_BG)
+        column.pack(anchor=side)
+
+        name_label = tk.Label(
+            column,
+            text=speaker,
+            bg=theme.PANEL_BG,
+            fg=theme.NAME_LABEL,
+            font=(theme.FONT_FAMILY, 8, "bold"),
+        )
+        name_label.pack(anchor=side)
+
+        bubble = tk.Label(
+            column,
+            text=text,
+            bg=theme.USER_BUBBLE_BG if is_user else theme.ASSISTANT_BUBBLE_BG,
+            fg=theme.USER_TEXT if is_user else theme.ASSISTANT_TEXT,
+            font=(theme.FONT_FAMILY, 10),
+            justify="left",
+            wraplength=theme.BUBBLE_MAX_WIDTH,
+            padx=10,
+            pady=8,
+        )
+        bubble.pack(anchor=side, pady=(2, 0))
+
+        # Force geometry to recompute now so the scrollregion/auto-scroll
+        # below account for this message's actual size immediately,
+        # rather than on the next idle cycle.
+        self.messages_frame.update_idletasks()
+        self.log_canvas.configure(scrollregion=self.log_canvas.bbox("all"))
+        self.log_canvas.yview_moveto(1.0)
 
     def _refresh_status(self) -> None:
         self.status_label.config(

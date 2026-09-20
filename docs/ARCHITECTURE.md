@@ -76,14 +76,22 @@ display; if `import tkinter` fails there, Python was installed without
 the "tcl/tk and IDLE" option (the python.org Windows installer includes
 it by default unless that box gets unchecked during a custom install).
 
-The chat log fakes "bubbles" with `Text` widget tag styling rather than a
-custom-drawn canvas: each message is inserted with a small-caps name tag
-(no background) followed by a body tag with a colored `background`,
-asymmetric left/right margins (`lmargin1/lmargin2/rmargin`) to keep the
-bubble from spanning the full width, and `justify` set right for the
-driver's messages and left for hers — enough to read as distinct chat
-bubbles without needing canvas-based rounded-rectangle drawing.
-`mood_color()` feeds the status label's text color, using the same
+The chat log is a `Canvas` + scrollbar holding a stack of per-message
+`Frame`/`Label` widgets (`_append_bubble`), not a single `Text` widget
+with tagged runs — that was the first approach, but a `Text` widget's tag
+`background` fills the entire wrapped line width regardless of how short
+the text actually is, which reads as a bar spanning the window rather
+than a bubble hugging the message. A `Label` sizes itself to its own
+content (up to `wraplength=theme.BUBBLE_MAX_WIDTH`), so its background
+naturally wraps tightly around just that message; packing each message's
+column with `anchor="e"` (driver) or `anchor="w"` (her) inside a
+full-width row gives the left/right alignment. The canvas's inner frame
+width is kept in sync with the canvas on resize (`_on_canvas_resize`),
+and the scrollregion/auto-scroll-to-bottom get recomputed after every
+new message (`_append_bubble`'s tail) and whenever the message stack's
+own size changes (`_on_messages_frame_resize`) — the standard scrollable-
+frame-in-a-canvas pattern, since tkinter has no scrollable `Frame`
+built in. `mood_color()` feeds the status label's text color, using the same
 valence thresholds `EmotionState.mood_description()` already uses (>0.3
 good, <-0.3 bad, otherwise neutral) so the color and the text it's
 describing never disagree — verified directly in

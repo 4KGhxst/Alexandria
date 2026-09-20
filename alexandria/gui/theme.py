@@ -23,6 +23,10 @@ USER_TEXT = "#0d1a18"
 NAME_LABEL = "#8b93a1"
 STATUS_DEFAULT = "#a7adb8"
 
+# Max pixel width a message bubble grows to before wrapping — short
+# messages stay their natural (smaller) width instead of stretching.
+BUBBLE_MAX_WIDTH = 380
+
 ENTRY_BG = "#1c1f24"
 ENTRY_TEXT = "#e5e7eb"
 
