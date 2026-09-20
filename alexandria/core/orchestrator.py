@@ -5,6 +5,7 @@ else only knows its own slice.
 
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 
@@ -73,6 +74,12 @@ class Orchestrator:
         self._latest_snapshot: Snapshot | None = None
         self._last_tick_time = time.monotonic()
         self._current_log_date = today()
+        # The GUI front end calls handle_user_text() from a background
+        # thread (to keep the window responsive during a cloud call) while
+        # tick() keeps running on the main thread's timer — this guards
+        # every entry point that touches shared state (the SQLite stores,
+        # emotion/conversation state) so the two never interleave.
+        self._lock = threading.RLock()
 
     def start(self) -> None:
         self.obd.connect()
@@ -82,22 +89,23 @@ class Orchestrator:
         """Read the latest sensor data, react to any health changes, and
         let mood decay toward baseline. Call this regularly (e.g. once per
         conversational turn, or on a background timer)."""
-        self._roll_over_day_if_needed()
+        with self._lock:
+            self._roll_over_day_if_needed()
 
-        now = time.monotonic()
-        dt = now - self._last_tick_time
-        self._last_tick_time = now
+            now = time.monotonic()
+            dt = now - self._last_tick_time
+            self._last_tick_time = now
 
-        snapshot = self.obd.read_snapshot()
-        self._latest_snapshot = snapshot
-        self.daily_log.record_snapshot(self._current_log_date, snapshot)
+            snapshot = self.obd.read_snapshot()
+            self._latest_snapshot = snapshot
+            self.daily_log.record_snapshot(self._current_log_date, snapshot)
 
-        for event in self.health_monitor.check(snapshot):
-            self.daily_log.record_event(self._current_log_date, event)
-            self.emotion_engine.apply_diagnostic(event)
+            for event in self.health_monitor.check(snapshot):
+                self.daily_log.record_event(self._current_log_date, event)
+                self.emotion_engine.apply_diagnostic(event)
 
-        self.emotion_engine.tick(dt)
-        return snapshot
+            self.emotion_engine.tick(dt)
+            return snapshot
 
     def _roll_over_day_if_needed(self) -> None:
         """If the calendar day changed since the last tick, finalize a
@@ -115,36 +123,39 @@ class Orchestrator:
         self._current_log_date = current_date
 
     def handle_user_text(self, text: str) -> str:
-        sentiment = classify_sentiment(text)
-        self.emotion_engine.apply_interaction(UserInteractionEvent(text=text, sentiment=sentiment))
-        self.relationship.record_interaction(sentiment)
-        self.relationship.save(self.config.relationship_path)
+        with self._lock:
+            sentiment = classify_sentiment(text)
+            self.emotion_engine.apply_interaction(UserInteractionEvent(text=text, sentiment=sentiment))
+            self.relationship.record_interaction(sentiment)
+            self.relationship.save(self.config.relationship_path)
 
-        report_response = self._maybe_handle_report_command(text)
-        if report_response is not None:
+            report_response = self._maybe_handle_report_command(text)
+            if report_response is not None:
+                self.conversation.add_user(text)
+                self.conversation.add_assistant(report_response)
+                return report_response
+
+            diagnostic_summary = (
+                HealthMonitor.summarize(self._latest_snapshot) if self._latest_snapshot else None
+            )
+            knowledge_snippets = self._gather_knowledge_snippets(text)
+            memory_notes = self._gather_memory_notes()
+
+            system_prompt = build_system_prompt(
+                self.traits,
+                self.emotion_engine.state,
+                diagnostic_summary,
+                knowledge_snippets,
+                self.config.vehicle,
+                self.relationship.summary(),
+                memory_notes,
+            )
+            history = self.conversation.as_messages()
+            response = self.router.answer(text, self._latest_snapshot, system_prompt, history=history)
+
             self.conversation.add_user(text)
-            self.conversation.add_assistant(report_response)
-            return report_response
-
-        diagnostic_summary = HealthMonitor.summarize(self._latest_snapshot) if self._latest_snapshot else None
-        knowledge_snippets = self._gather_knowledge_snippets(text)
-        memory_notes = self._gather_memory_notes()
-
-        system_prompt = build_system_prompt(
-            self.traits,
-            self.emotion_engine.state,
-            diagnostic_summary,
-            knowledge_snippets,
-            self.config.vehicle,
-            self.relationship.summary(),
-            memory_notes,
-        )
-        history = self.conversation.as_messages()
-        response = self.router.answer(text, self._latest_snapshot, system_prompt, history=history)
-
-        self.conversation.add_user(text)
-        self.conversation.add_assistant(response)
-        return response
+            self.conversation.add_assistant(response)
+            return response
 
     def _gather_memory_notes(self) -> list[str]:
         summaries = self.memory_log.recent_summaries(limit=3, before_date=today())
@@ -184,16 +195,17 @@ class Orchestrator:
     def end_session(self) -> None:
         """Call when the app is shutting down: writes today's memory
         summary and makes sure a report exists for today's data, if any."""
-        today_date = today()
-        summary = summarize_session(self.cloud_client, self.conversation.as_messages())
-        if summary:
-            self.memory_log.save_summary(today_date, summary)
+        with self._lock:
+            today_date = today()
+            summary = summarize_session(self.cloud_client, self.conversation.as_messages())
+            if summary:
+                self.memory_log.save_summary(today_date, summary)
 
-        if self.daily_log.has_data(today_date):
-            try:
-                self.generate_daily_report(today_date)
-            except RuntimeError:
-                pass
+            if self.daily_log.has_data(today_date):
+                try:
+                    self.generate_daily_report(today_date)
+                except RuntimeError:
+                    pass
 
     def _gather_knowledge_snippets(self, text: str) -> list[str]:
         """Feeds general conversation (not just the strict manual tier)
