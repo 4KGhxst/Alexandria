@@ -39,6 +39,7 @@ from alexandria.config import Config
 from alexandria.core.orchestrator import Orchestrator
 from alexandria.gui import theme
 from alexandria.gui.formatting import mood_color, speaker_name, status_text, window_title
+from alexandria.gui.logo import SpinningLogo
 from alexandria.voice.interfaces import TextConsole
 
 BACKGROUND_TICK_MS = 10_000
@@ -62,17 +63,10 @@ class AlexandriaApp:
 
     def _build_widgets(self) -> None:
         header = tk.Frame(self.root, bg=theme.BG)
-        header.pack(fill="x", padx=16, pady=(14, 6))
+        header.pack(fill="x", padx=16, pady=(10, 6))
 
-        title = tk.Label(
-            header,
-            text=window_title(self.orchestrator.traits),
-            bg=theme.BG,
-            fg=theme.ENTRY_TEXT,
-            font=(theme.FONT_FAMILY, 14, "bold"),
-            anchor="w",
-        )
-        title.pack(fill="x")
+        self.logo = SpinningLogo(header)
+        self.logo.pack()
 
         self.status_label = tk.Label(
             header,
@@ -80,7 +74,7 @@ class AlexandriaApp:
             bg=theme.BG,
             fg=theme.STATUS_DEFAULT,
             font=(theme.FONT_FAMILY, 9),
-            anchor="w",
+            anchor="center",
         )
         self.status_label.pack(fill="x", pady=(2, 0))
 
