@@ -138,17 +138,29 @@ Rendering is currently a wireframe: `fill=""` on each polygon (Canvas's
 own "draw no fill" — whatever's beneath shows through, so the interior is
 genuinely transparent, not just background-colored) with a single red
 `outline` shared by all three diamonds, darkened via `shade_color` on the
-"back" half of the spin for a depth cue without any fill at all. An
-earlier iteration fake-extruded each diamond into a solid beveled block
-(the classic 90s-CGI-logo trick: `offset_points` shifts a copy of the
-front-face points by a fixed depth vector, `extrusion_side_quads`
+"back" half of the spin for a depth cue without any fill at all.
+
+There are two full copies of the emblem: the main one, and a dimmer
+"echo" copy offset a few pixels behind it (`offset_points`, same trick as
+the earlier extrusion's depth vector, just applied to a whole duplicate
+shape instead of side-wall quads) and stacked underneath via Canvas's
+creation-order z-ordering (echo polygons created first). Both copies are
+computed from the *same* `self._angle` value inside one `_animate()`
+tick — critically, this is a single shared piece of state driving two
+sets of polygons, not two separately-scheduled `after()` loops each
+computing their own angle, which is what actually guarantees they never
+drift out of sync with each other.
+
+An earlier iteration fake-extruded each diamond into a solid beveled
+block (the classic 90s-CGI-logo trick: `offset_points` shifts a copy of
+the front-face points by a fixed depth vector, `extrusion_side_quads`
 connects each front/back edge into a darker quad, drawn *before* the
 front face so Canvas's creation-order stacking covers the seam) — that
 approach is still in `logo_geometry.py`, fully tested, just not called
 from `logo.py` right now, in case the solid-fill look gets revisited.
-Either way, no real Z-axis or 3D rendering is involved — every "depth"
-cue here is a fixed 2D offset, a cosine-scaled squish, or a darkened
-outline/fill.
+No real Z-axis or 3D rendering is involved anywhere in this — every
+"depth" cue here is a fixed 2D offset, a cosine-scaled squish, or a
+darkened outline/fill.
 
 The geometry (`logo_geometry.py`) has no tkinter import and is fully
 unit-tested; `logo.py`'s `SpinningLogo` (a `tk.Frame` subclass) is what
