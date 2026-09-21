@@ -141,15 +141,19 @@ genuinely transparent, not just background-colored) with a single red
 "back" half of the spin for a depth cue without any fill at all.
 
 There are two full copies of the emblem: the main one, and a dimmer
-"echo" copy offset a few pixels behind it (`offset_points`, same trick as
-the earlier extrusion's depth vector, just applied to a whole duplicate
-shape instead of side-wall quads) and stacked underneath via Canvas's
-creation-order z-ordering (echo polygons created first). Both copies are
-computed from the *same* `self._angle` value inside one `_animate()`
-tick — critically, this is a single shared piece of state driving two
-sets of polygons, not two separately-scheduled `after()` loops each
-computing their own angle, which is what actually guarantees they never
-drift out of sync with each other.
+"echo" copy shifted straight up from it (`offset_points` with zero
+horizontal offset, so the two share the same horizontal axis instead of
+sitting diagonally apart) and stacked underneath via Canvas's
+creation-order z-ordering (echo polygons created first). A connector line
+is drawn between each corresponding corner of the two shapes
+(`zip(points, echo_points)`, one line per vertex) — the classic
+wireframe-box look, two matching outlines with straight struts between
+them standing in for the edges a real 3D renderer would draw between a
+front and back face. Every layer (main, echo, connectors) is computed
+from the *same* `self._angle` value inside one `_animate()` tick —
+critically, this is a single shared piece of state driving all of it,
+not several separately-scheduled `after()` loops each computing their
+own angle, which is what actually guarantees nothing drifts out of sync.
 
 An earlier iteration fake-extruded each diamond into a solid beveled
 block (the classic 90s-CGI-logo trick: `offset_points` shifts a copy of
