@@ -50,10 +50,14 @@ from alexandria.gui.logo_geometry import (
 
 WORDMARK_TEXT = "MizuBibi"
 
-CANVAS_SIZE = 130
-DIAMOND_WIDTH = 26
-DIAMOND_HEIGHT = 40
-PINWHEEL_RADIUS = 22
+# Scaled up 1.6x from the original 130/26/40/22/22 set — a uniform scale
+# of every geometry constant around the same shared center, so the
+# clipping-safety already established for those (see ARCHITECTURE.md)
+# carries over rather than needing to be re-checked from scratch.
+CANVAS_SIZE = 208
+DIAMOND_WIDTH = 42
+DIAMOND_HEIGHT = 64
+PINWHEEL_RADIUS = 35
 SPIN_DEGREES_PER_FRAME = 6
 FRAME_MS = 40
 
@@ -63,8 +67,10 @@ OUTLINE_WIDTH = 2
 # How far behind the front plane the echo layer actually sits, in the
 # same faux-3D depth units apply_spin_squish uses — not a screen-space
 # pixel offset. See the module docstring for why that distinction matters.
-ECHO_DEPTH = 22.0
+ECHO_DEPTH = 35.0
 CONNECTOR_WIDTH = 1
+
+WORDMARK_FONT_SIZE = 20
 
 
 @dataclass
@@ -119,10 +125,10 @@ class SpinningLogo(tk.Frame):
             self,
             text=WORDMARK_TEXT,
             bg=theme.BG,
-            fg=theme.ENTRY_TEXT,
-            font=(theme.FONT_FAMILY, 13, "bold"),
+            fg=OUTLINE_COLOR,
+            font=(theme.FONT_FAMILY, WORDMARK_FONT_SIZE, "bold"),
         )
-        self.wordmark.pack(pady=(2, 0))
+        self.wordmark.pack(pady=(4, 0))
 
         self._animate()
 

@@ -184,7 +184,13 @@ angles right along with the shapes they connect, and stretch out as
 depth becomes visible. `CANVAS_SIZE`/the shared axis center were sized
 by sweeping the real geometry functions across a full 0–360 rotation
 (not just eyeballing a couple of angles) to confirm nothing clips: x
-stays within roughly 22–108, y within 23–87, against a 130×130 canvas.
+stays within roughly 22–108, y within 23–87, against the original
+130×130 canvas — every geometry constant (`CANVAS_SIZE`,
+`DIAMOND_WIDTH`/`HEIGHT`, `PINWHEEL_RADIUS`, `ECHO_DEPTH`) has since
+been scaled up together by the same 1.6x factor for a bigger header
+emblem, which preserves those margins rather than invalidating them,
+since it's a uniform scale of the whole geometry around the same shared
+center.
 
 Every layer (main, echo, connectors) is computed from the *same*
 `self._angle` value inside one `_animate()` tick — critically, this is a
