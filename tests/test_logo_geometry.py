@@ -3,7 +3,9 @@ import math
 from alexandria.gui.logo_geometry import (
     apply_spin_squish,
     diamond_points,
+    extrusion_side_quads,
     is_facing_viewer,
+    offset_points,
     pinwheel_diamond_centers,
     pinwheel_diamond_rotation,
     rotate_points,
@@ -118,6 +120,7 @@ def test_is_facing_viewer_flips_between_front_and_back_half():
     assert is_facing_viewer(45) is True
     assert is_facing_viewer(135) is False
     assert is_facing_viewer(225) is False
+    assert is_facing_viewer(315) is True
 
 
 def test_shade_color_darkens_by_factor():
@@ -135,4 +138,32 @@ def test_shade_color_clamps_to_black_and_white():
 
 def test_shade_color_accepts_color_without_leading_hash():
     assert shade_color("2dd4bf", 0.5) == "#166a60"
-    assert is_facing_viewer(315) is True
+
+
+def test_offset_points_translates_by_dx_dy():
+    points = [(10, 5), (20, 15)]
+    result = offset_points(points, dx=3, dy=-2)
+    assert result == [(13, 3), (23, 13)]
+
+
+def test_offset_points_does_not_mutate_input():
+    points = [(10, 5)]
+    offset_points(points, dx=3, dy=-2)
+    assert points == [(10, 5)]
+
+
+def test_extrusion_side_quads_returns_one_quad_per_edge():
+    front = diamond_points(0, 0, width=10, height=20)
+    back = offset_points(front, dx=4, dy=4)
+    quads = extrusion_side_quads(front, back)
+    assert len(quads) == 4
+    assert all(len(quad) == 4 for quad in quads)
+
+
+def test_extrusion_side_quads_connects_matching_edge_correctly():
+    front = [(0, 0), (10, 0), (10, 10), (0, 10)]  # a simple square
+    back = offset_points(front, dx=2, dy=2)
+    quads = extrusion_side_quads(front, back)
+    # The first quad should connect front[0]->front[1] with the
+    # corresponding back points, in matching order (not crossed/twisted).
+    assert quads[0] == [(0, 0), (10, 0), (12, 2), (2, 2)]

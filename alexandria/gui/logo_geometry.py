@@ -78,6 +78,27 @@ def is_facing_viewer(angle_degrees: float) -> bool:
     return math.cos(math.radians(angle_degrees)) >= 0
 
 
+def offset_points(points: list[Point], dx: float, dy: float) -> list[Point]:
+    """Translates every point by (dx, dy) — used to build the "back" face
+    of a fake-extruded shape a fixed distance behind the front face, the
+    classic 90s-CGI-logo trick for turning a flat shape into a solid-
+    looking one without any real 3D rendering."""
+    return [(x + dx, y + dy) for x, y in points]
+
+
+def extrusion_side_quads(front_points: list[Point], back_points: list[Point]) -> list[list[Point]]:
+    """Builds one quad per edge connecting corresponding front/back
+    points — the "side walls" of a fake-extruded shape, filled with a
+    darker shade to read as depth. front_points and back_points must be
+    the same length and in matching order (e.g. both from diamond_points
+    or a transformed copy of it)."""
+    count = len(front_points)
+    return [
+        [front_points[i], front_points[(i + 1) % count], back_points[(i + 1) % count], back_points[i]]
+        for i in range(count)
+    ]
+
+
 def shade_color(hex_color: str, factor: float) -> str:
     """Darkens (factor < 1) or lightens (factor > 1, clamped to 255) a
     "#rrggbb" color by a multiplier — used to shade each diamond's own
