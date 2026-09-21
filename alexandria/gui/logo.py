@@ -70,7 +70,12 @@ OUTLINE_WIDTH = 2
 ECHO_DEPTH = 35.0
 CONNECTOR_WIDTH = 1
 
-WORDMARK_FONT_SIZE = 20
+# Scaled up more aggressively than the 1.6x on the diamond geometry
+# above (13pt originally) — a straight 1.6x (~21pt) reads as barely
+# bigger next to a much larger emblem, since the diamonds visually
+# dominate; this keeps the wordmark proportionally as prominent as it
+# was relative to the old, smaller header.
+WORDMARK_FONT_SIZE = 26
 
 
 @dataclass
