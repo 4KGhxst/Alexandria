@@ -205,6 +205,49 @@ points each frame via `self.after(FRAME_MS, self._animate)` rather than
 deleting and recreating the shapes, which is what keeps a 40ms tick
 smooth instead of flickery.
 
+**Full-window background.** `SpinningLogo` isn't confined to a small
+header canvas anymore — `app.py` places it with
+`.place(relx=0, rely=0, relwidth=1, relheight=1)` on `self.root` and
+`.lower()`s it, so it fills the entire window as a background layer with
+every other widget (status label, chat panel, entry row) placed on top
+of it via their own `.place()` calls instead of the old `.pack()`
+top-to-bottom stack. Tkinter has no real alpha compositing between
+overlapping widgets, so this is an *opaque panels over a background
+canvas* look, not true see-through UI: the chat log and entry bar still
+have their own solid background color and fully hide the emblem behind
+them, and the spin is actually visible only in the margins/gaps around
+those panels (which is also why the layout leaves deliberate breathing
+room — `relwidth=0.9`-style panels rather than edge-to-edge ones).
+
+Because the canvas can now be resized to anything (from window resizing,
+not just a fixed 130×130 header square), `SpinningLogo` binds
+`<Configure>` on its canvas (`_on_resize`) to recompute the shared axis
+center (`_axis_x`, `_center_y`) and a scale factor
+(`logo_geometry.scale_for_canvas`, `min(width, height) / CANVAS_SIZE`,
+floored so a mid-resize near-zero canvas can't collapse the emblem to
+nothing) on every resize event. Every size constant tuned for the
+original 130px header (diamond width/height, pinwheel radius, echo
+depth, wordmark offset/font size) is multiplied by that live scale each
+`_animate()` tick, and diamond centers/points are now derived fresh from
+`self._axis_x`/`self._center_y` every frame instead of being cached once
+at construction time — the whole emblem re-centers and rescales itself
+continuously as the window resizes, rather than staying pinned to
+wherever/however large it was when first drawn.
+
+**Wordmark spin + color match.** The "MizuBibi" wordmark used to be a
+plain static `tk.Label` packed below the canvas. It's now a Canvas text
+item (`create_text`) living in the same coordinate space as the
+diamonds, updated every `_animate()` tick alongside them. It can't be
+squished the way the diamond polygons are — Canvas text glyphs don't
+stretch when you `.scale()` a text item, only its anchor point moves —
+so instead of a broken fake squish, it does a genuine in-plane rotation
+using Tk 8.6+'s native `angle` option on `create_text`, driven off the
+exact same `self._angle` as the diamonds. Its fill color is set to
+whatever `outline_color` the diamonds are using that frame (including
+the `shade_color`-darkened variant on the back half of the spin), so the
+wordmark visually reads as part of the same spinning object instead of
+a separately-colored, separately-moving label.
+
 ## Running persistently
 
 `scripts/windows/run_alexandria.ps1` is a restart-on-exit wrapper: it

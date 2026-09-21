@@ -62,24 +62,28 @@ class AlexandriaApp:
         self._build_widgets()
 
     def _build_widgets(self) -> None:
-        header = tk.Frame(self.root, bg=theme.BG)
-        header.pack(fill="x", padx=16, pady=(10, 6))
-
-        self.logo = SpinningLogo(header)
-        self.logo.pack()
+        # The spinning emblem is its own layer filling the entire window,
+        # behind everything else — tkinter has no real alpha compositing,
+        # so it only actually shows through in the margins/gaps around the
+        # opaque panels placed on top of it below, not underneath them.
+        self.logo = SpinningLogo(self.root)
+        self.logo.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.logo.lower()
 
         self.status_label = tk.Label(
-            header,
+            self.root,
             text="",
             bg=theme.BG,
             fg=theme.STATUS_DEFAULT,
             font=(theme.FONT_FAMILY, 9),
             anchor="center",
+            padx=10,
+            pady=2,
         )
-        self.status_label.pack(fill="x", pady=(2, 0))
+        self.status_label.place(relx=0.5, rely=0.02, anchor="n")
 
         log_frame = tk.Frame(self.root, bg=theme.PANEL_BG)
-        log_frame.pack(fill="both", expand=True, padx=16, pady=10)
+        log_frame.place(relx=0.5, rely=0.12, relwidth=0.9, relheight=0.72, anchor="n")
 
         self.log_canvas = tk.Canvas(log_frame, bg=theme.PANEL_BG, borderwidth=0, highlightthickness=0)
         log_scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_canvas.yview)
@@ -94,7 +98,7 @@ class AlexandriaApp:
         self.log_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
 
         entry_frame = tk.Frame(self.root, bg=theme.BG)
-        entry_frame.pack(fill="x", padx=16, pady=(0, 16))
+        entry_frame.place(relx=0.5, rely=0.98, relwidth=0.9, anchor="s")
 
         self.entry = ttk.Entry(entry_frame, style="Alexandria.TEntry", font=(theme.FONT_FAMILY, 10))
         self.entry.pack(side="left", fill="x", expand=True, ipady=6)
