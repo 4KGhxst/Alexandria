@@ -106,9 +106,12 @@ is running.
 
 `gui/logo_geometry.py` + `gui/logo.py` render an animated header emblem —
 three diamonds arranged like a tripod/peace sign (one pointing straight
-up, the other two angled down-left and down-right), each with a distinct
-fixed color (`DIAMOND_COLORS`). Two rotations are composed on each
-diamond, for two different reasons:
+up, the other two angled down-left and down-right), all drawn in the
+same single red (`OUTLINE_COLOR`) — no per-diamond, per-layer, or
+facing-based shading, so the whole emblem reads as one uniform shade
+throughout the spin rather than getting darker on any part of the
+rotation. Two rotations are composed on each diamond, for two different
+reasons:
 
 1. **A static, per-diamond rotation** (`pinwheel_diamond_rotation`,
    applied via `rotate_points`) points each diamond's own long axis
@@ -124,11 +127,12 @@ diamond, for two different reasons:
    trick, not real 3D rendering: every point's x-offset from a shared
    vertical axis gets scaled by `cos(angle)` each frame, on top of the
    static rotation above, so the whole tripod shape spins together as
-   one rigid emblem. It flattens to a sliver edge-on and each diamond
-   darkens to its own shaded variant (`is_facing_viewer` + `shade_color`,
-   not a swap to some other diamond's color, so each one keeps its own
-   identity through the whole spin) past that point, the same illusion
-   as a spinning coin.
+   one rigid emblem. It flattens to a sliver edge-on, the same illusion
+   as a spinning coin — but unlike an earlier iteration, color doesn't
+   change through that: `is_facing_viewer`/`shade_color` (still in
+   `logo_geometry.py`, fully tested) are no longer called from
+   `logo.py`, so the shape's silhouette flattens but never darkens or
+   swaps shade as it turns.
 
 The three-diamond arrangement is original geometry built from scratch
 (`pinwheel_diamond_centers`), not a reproduction of any brand's actual
@@ -137,8 +141,9 @@ trademarked logo artwork.
 Rendering is currently a wireframe: `fill=""` on each polygon (Canvas's
 own "draw no fill" — whatever's beneath shows through, so the interior is
 genuinely transparent, not just background-colored) with a single red
-`outline` shared by all three diamonds, darkened via `shade_color` on the
-"back" half of the spin for a depth cue without any fill at all.
+`outline` shared by all three diamonds and both layers (main + echo),
+held constant through the whole spin rather than darkened on any half of
+the rotation.
 
 There are two full copies of the emblem, at the same size, with no
 screen-space offset between them at all — the echo layer is meant to be
