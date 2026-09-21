@@ -44,3 +44,13 @@ def test_humor_directive_bands_are_distinct():
         humor_directive(PersonalityTraits(humor=h)) for h in (0.0, 0.2, 0.6, 0.9)
     }
     assert len(directives) == 4
+
+
+def test_humor_directive_never_forces_a_joke_into_every_reply():
+    # Every band above deadpan should explicitly say most replies carry no
+    # joke at all and a joke should never be forced in — the whole point
+    # being that this isn't optional flavor text the model can skim past.
+    for humor in (0.2, 0.6, 0.9):
+        directive = humor_directive(PersonalityTraits(humor=humor))
+        assert "no joke" in directive
+        assert "Never force" in directive

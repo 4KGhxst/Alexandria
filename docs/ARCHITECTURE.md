@@ -333,6 +333,14 @@ conversation, land-and-move-on) down to basically deadpan — and that
 directive is injected into the system prompt right alongside the speech
 style one.
 
+Every band above deadpan ends on the same explicit restraint line
+("most replies have no joke in them at all... never force one in where
+nothing's actually funny"), on purpose: the actual failure mode isn't
+too little humor, it's a joke wedged into a reply that didn't call for
+one (a status check, real trouble, a plain question) — that reads as
+forced rather than as a personality. Humor here is meant to surface
+when something's genuinely there, not get performed on a schedule.
+
 ### Conversational skills
 
 A fixed block in `persona.py` (not trait-gated — this applies regardless

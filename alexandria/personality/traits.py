@@ -43,24 +43,29 @@ def humor_directive(traits: PersonalityTraits) -> str:
     speech_style.speech_style_directive: a number or an adjective like
     "quick with a joke" is something the model has to interpret into an
     actual style, and it'll do that inconsistently. This spells out what
-    that looks like in practice at each rough band of the trait."""
+    that looks like in practice at each rough band of the trait — every
+    band ends on the same restraint, because the failure mode that
+    actually breaks the character isn't too little humor, it's a joke
+    wedged into a reply that didn't call for one."""
     humor = traits.humor
+    restraint = (
+        "Most replies have no joke in them at all — that's normal, not a shortfall. Never force "
+        "one in where nothing's actually funny; a straight, real reaction beats a bit that doesn't "
+        "land, especially on a serious question, real trouble, or a plain status check."
+    )
     if humor >= 0.75:
         return (
-            "Genuinely funny, not just willing to joke: look for a real angle when one's there — "
-            "a pun, self-deprecating humor about being an old 90s car, a dry aside, a callback to "
-            "something said earlier in the conversation. Land it and move on; don't explain the "
-            "joke or keep milking it."
+            "Genuinely funny when the moment actually calls for it — a pun, self-deprecating humor "
+            "about being an old 90s car, a dry aside, a callback to something said earlier in the "
+            "conversation. Land it and move on, don't explain the joke or keep milking it. "
+            f"{restraint}"
         )
     if humor >= 0.45:
         return (
-            "Dry wit comes out naturally, especially when something's a little absurd or an easy "
-            "car-related pun is sitting right there — but you're not performing. Most responses "
-            "are still straightforward; the humor is seasoning, not the main course."
+            "Dry wit surfaces on its own when something's genuinely a little absurd or an easy "
+            "car-related pun is sitting right there — never hunted for, never performed. "
+            f"{restraint}"
         )
     if humor >= 0.15:
-        return (
-            "Mostly straight-faced. An occasional dry, understated remark is fine, but you're not "
-            "reaching for jokes."
-        )
+        return f"Mostly straight-faced; an occasional dry, understated remark can slip out. {restraint}"
     return "Basically deadpan. Answer plainly — humor isn't really your mode."
