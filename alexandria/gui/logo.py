@@ -15,6 +15,7 @@ from alexandria.gui.logo_geometry import (
     diamond_points,
     is_facing_viewer,
     pinwheel_diamond_centers,
+    shade_color,
 )
 
 WORDMARK_TEXT = "MizuBibi"
@@ -26,8 +27,11 @@ PINWHEEL_RADIUS = 22
 SPIN_DEGREES_PER_FRAME = 4
 FRAME_MS = 40
 
-FRONT_COLOR = theme.ACCENT
-BACK_COLOR = "#1b6f66"  # a darker shade of the accent, for the "back face"
+# Each diamond keeps its own fixed color identity through the whole spin
+# (darkened when facing away, never swapped for a different diamond's
+# color) rather than the whole group sharing one color.
+DIAMOND_COLORS = ["#2dd4bf", "#f5a524", "#f87171"]
+BACK_SHADE_FACTOR = 0.5
 
 
 class SpinningLogo(tk.Frame):
@@ -43,11 +47,12 @@ class SpinningLogo(tk.Frame):
         )
         self.canvas.pack()
 
-        self._diamonds: list[tuple[int, tuple[float, float]]] = []
-        for center in pinwheel_diamond_centers(self._axis_x, center_y, PINWHEEL_RADIUS):
+        self._diamonds: list[tuple[int, tuple[float, float], str]] = []
+        centers = pinwheel_diamond_centers(self._axis_x, center_y, PINWHEEL_RADIUS)
+        for center, color in zip(centers, DIAMOND_COLORS):
             points = diamond_points(center[0], center[1], DIAMOND_WIDTH, DIAMOND_HEIGHT)
-            polygon_id = self.canvas.create_polygon(_flatten(points), fill=FRONT_COLOR, outline="")
-            self._diamonds.append((polygon_id, center))
+            polygon_id = self.canvas.create_polygon(_flatten(points), fill=color, outline="")
+            self._diamonds.append((polygon_id, center, color))
 
         self.wordmark = tk.Label(
             self,
@@ -62,11 +67,12 @@ class SpinningLogo(tk.Frame):
 
     def _animate(self) -> None:
         self._angle = (self._angle + SPIN_DEGREES_PER_FRAME) % 360
-        color = FRONT_COLOR if is_facing_viewer(self._angle) else BACK_COLOR
+        facing = is_facing_viewer(self._angle)
 
-        for polygon_id, center in self._diamonds:
+        for polygon_id, center, base_color in self._diamonds:
             base_points = diamond_points(center[0], center[1], DIAMOND_WIDTH, DIAMOND_HEIGHT)
             spun_points = apply_spin_squish(base_points, self._axis_x, self._angle)
+            color = base_color if facing else shade_color(base_color, BACK_SHADE_FACTOR)
             self.canvas.coords(polygon_id, _flatten(spun_points))
             self.canvas.itemconfig(polygon_id, fill=color)
 

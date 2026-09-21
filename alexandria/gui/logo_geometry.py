@@ -50,5 +50,17 @@ def apply_spin_squish(points: list[Point], axis_x: float, angle_degrees: float) 
 
 def is_facing_viewer(angle_degrees: float) -> bool:
     """Which "face" of the spin should be showing right now — used to
-    swap between a lighter/darker shade as a cheap lighting cue."""
+    darken each diamond's own color as a cheap lighting cue."""
     return math.cos(math.radians(angle_degrees)) >= 0
+
+
+def shade_color(hex_color: str, factor: float) -> str:
+    """Darkens (factor < 1) or lightens (factor > 1, clamped to 255) a
+    "#rrggbb" color by a multiplier — used to shade each diamond's own
+    fixed color when it's facing away, instead of swapping to some other
+    shared color, so every diamond keeps its own identity through the
+    whole spin."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+    r, g, b = (min(255, max(0, round(channel * factor))) for channel in (r, g, b))
+    return f"#{r:02x}{g:02x}{b:02x}"

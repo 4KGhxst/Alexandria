@@ -105,16 +105,17 @@ is running.
 ### Spinning logo
 
 `gui/logo_geometry.py` + `gui/logo.py` render an animated header emblem —
-three diamonds in a pinwheel, spinning via a classic 2D-canvas trick
-rather than any real 3D rendering: every point's x-offset from a shared
-vertical axis gets scaled by `cos(angle)` each frame
-(`apply_spin_squish`), which reads as a rigid shape rotating in 3D — it
-flattens to a sliver edge-on and swaps to a darker shade
-(`is_facing_viewer`) past that point, the same illusion as a spinning
-coin. The three-diamond pinwheel layout is original geometry built from
-scratch (`pinwheel_diamond_centers`), not a reproduction of any brand's
-actual trademarked logo artwork — deliberately so, even for a
-personal/local-only app.
+three diamonds, each the same (unrotated) shape but a distinct fixed
+color (`DIAMOND_COLORS`), spinning via a classic 2D-canvas trick rather
+than any real 3D rendering: every point's x-offset from a shared vertical
+axis gets scaled by `cos(angle)` each frame (`apply_spin_squish`), which
+reads as a rigid shape rotating in 3D — it flattens to a sliver edge-on
+and each diamond darkens to its own shaded variant (`is_facing_viewer` +
+`shade_color`, not a swap to some other diamond's color, so each one
+keeps its own identity through the whole spin) past that point, the same
+illusion as a spinning coin. The three-diamond arrangement is original
+geometry built from scratch (`pinwheel_diamond_centers`), not a
+reproduction of any brand's actual trademarked logo artwork.
 
 The geometry (`logo_geometry.py`) has no tkinter import and is fully
 unit-tested; `logo.py`'s `SpinningLogo` (a `tk.Frame` subclass) is what

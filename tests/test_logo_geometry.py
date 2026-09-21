@@ -5,6 +5,7 @@ from alexandria.gui.logo_geometry import (
     diamond_points,
     is_facing_viewer,
     pinwheel_diamond_centers,
+    shade_color,
 )
 
 
@@ -81,4 +82,21 @@ def test_is_facing_viewer_flips_between_front_and_back_half():
     assert is_facing_viewer(45) is True
     assert is_facing_viewer(135) is False
     assert is_facing_viewer(225) is False
+
+
+def test_shade_color_darkens_by_factor():
+    assert shade_color("#2dd4bf", 0.5) == "#166a60"
+
+
+def test_shade_color_full_factor_is_unchanged():
+    assert shade_color("#2dd4bf", 1.0) == "#2dd4bf"
+
+
+def test_shade_color_clamps_to_black_and_white():
+    assert shade_color("#000000", 0.5) == "#000000"
+    assert shade_color("#ffffff", 2.0) == "#ffffff"
+
+
+def test_shade_color_accepts_color_without_leading_hash():
+    assert shade_color("2dd4bf", 0.5) == "#166a60"
     assert is_facing_viewer(315) is True
