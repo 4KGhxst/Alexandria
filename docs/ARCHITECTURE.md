@@ -141,19 +141,35 @@ genuinely transparent, not just background-colored) with a single red
 "back" half of the spin for a depth cue without any fill at all.
 
 There are two full copies of the emblem: the main one, and a dimmer
-"echo" copy shifted straight up from it (`offset_points` with zero
-horizontal offset, so the two share the same horizontal axis instead of
-sitting diagonally apart) and stacked underneath via Canvas's
-creation-order z-ordering (echo polygons created first). A connector line
-is drawn between each corresponding corner of the two shapes
-(`zip(points, echo_points)`, one line per vertex) — the classic
-wireframe-box look, two matching outlines with straight struts between
-them standing in for the edges a real 3D renderer would draw between a
-front and back face. Every layer (main, echo, connectors) is computed
-from the *same* `self._angle` value inside one `_animate()` tick —
-critically, this is a single shared piece of state driving all of it,
-not several separately-scheduled `after()` loops each computing their
-own angle, which is what actually guarantees nothing drifts out of sync.
+"echo" copy sitting above it on the same horizontal axis
+(`SpinningLogo._echo_points`, `ECHO_OFFSET_X` is 0 so there's no
+diagonal drift) and stacked underneath via Canvas's creation-order
+z-ordering (echo polygons created first). A connector line is drawn
+between each corresponding corner of the two shapes (`zip(points,
+echo_points)`, one line per vertex) — the classic wireframe-box look, two
+matching outlines with straight struts between them standing in for the
+edges a real 3D renderer would draw between a front and back face.
+
+A same-size copy just shifted upward reads as a flat shadow, not real
+depth — `_echo_points` fixes that by composing two transforms:
+`scale_points` shrinks the copy toward the shared axis center first
+(`ECHO_SCALE`; a smaller copy reads as farther away, the basic
+perspective cue), *then* `offset_points` shifts the now-smaller copy up
+(`ECHO_OFFSET_Y`). Both constants got pushed further than the first pass
+(offset from -8 to -26, plus the new 0.72 scale) specifically because the
+first version still read as flat — `CANVAS_SIZE` and `_center_y` were
+adjusted alongside them (140 and `CANVAS_SIZE/2 + 10`, up from 110 and
+`CANVAS_SIZE/2 - 6`) so the taller/wider spread of points from the bigger
+offset doesn't clip against the canvas edge; a small script computing the
+real point extents with the final constants (not just eyeballing it)
+confirmed x stays within roughly 34–106 and y within 24–102 against a
+140×140 canvas before shipping the change.
+
+Every layer (main, echo, connectors) is computed from the *same*
+`self._angle` value inside one `_animate()` tick — critically, this is a
+single shared piece of state driving all of it, not several
+separately-scheduled `after()` loops each computing their own angle,
+which is what actually guarantees nothing drifts out of sync.
 
 An earlier iteration fake-extruded each diamond into a solid beveled
 block (the classic 90s-CGI-logo trick: `offset_points` shifts a copy of

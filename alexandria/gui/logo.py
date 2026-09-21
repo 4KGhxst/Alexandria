@@ -35,12 +35,13 @@ from alexandria.gui.logo_geometry import (
     pinwheel_diamond_centers,
     pinwheel_diamond_rotation,
     rotate_points,
+    scale_points,
     shade_color,
 )
 
 WORDMARK_TEXT = "MizuBibi"
 
-CANVAS_SIZE = 110
+CANVAS_SIZE = 140
 DIAMOND_WIDTH = 26
 DIAMOND_HEIGHT = 40
 PINWHEEL_RADIUS = 22
@@ -53,10 +54,13 @@ BACK_SHADE_FACTOR = 0.5  # how much darker the outline gets when facing away
 
 # The echo copy: shifted straight up (no horizontal offset, so it lines
 # up evenly on the same axis as the main logo instead of sitting
-# diagonally offset from it) and dimmed relative to whatever the main
-# outline's current color is that frame.
+# diagonally offset from it) AND scaled down around the shared axis
+# center — the combination is what reads as real distance rather than a
+# same-size shape nudged sideways (which just looks like a shadow, not a
+# second layer sitting farther back in space).
 ECHO_OFFSET_X = 0
-ECHO_OFFSET_Y = -8
+ECHO_OFFSET_Y = -26
+ECHO_SCALE = 0.72
 ECHO_SHADE_FACTOR = 0.45
 CONNECTOR_WIDTH = 1
 
@@ -76,7 +80,10 @@ class SpinningLogo(tk.Frame):
         self._angle = 0.0
 
         self._axis_x = CANVAS_SIZE / 2
-        self._center_y = CANVAS_SIZE / 2 - 6
+        # Pushed down from center (rather than the old "- 6") to leave
+        # headroom above for the echo layer, which now sits noticeably
+        # higher up (see ECHO_OFFSET_Y) to read as real depth.
+        self._center_y = CANVAS_SIZE / 2 + 10
 
         self.canvas = tk.Canvas(
             self, width=CANVAS_SIZE, height=CANVAS_SIZE, bg=theme.BG, highlightthickness=0
@@ -94,7 +101,7 @@ class SpinningLogo(tk.Frame):
         echo_outline = shade_color(OUTLINE_COLOR, ECHO_SHADE_FACTOR)
         self._diamonds: list[_Diamond] = []
         for center, rotation, points in layout:
-            echo_points = offset_points(points, ECHO_OFFSET_X, ECHO_OFFSET_Y)
+            echo_points = self._echo_points(points)
 
             # Drawn in back-to-front order so the main polygon's outline
             # ends up on top: echo first, then the connecting struts,
@@ -123,6 +130,14 @@ class SpinningLogo(tk.Frame):
 
         self._animate()
 
+    def _echo_points(self, points: list[tuple[float, float]]) -> list[tuple[float, float]]:
+        """Scale-then-shift: shrink toward the shared axis (perspective —
+        smaller reads as farther away), then nudge up, so the echo layer
+        looks like real distance rather than a same-size shape shifted
+        sideways."""
+        scaled = scale_points(points, (self._axis_x, self._center_y), ECHO_SCALE)
+        return offset_points(scaled, ECHO_OFFSET_X, ECHO_OFFSET_Y)
+
     def _animate(self) -> None:
         self._angle = (self._angle + SPIN_DEGREES_PER_FRAME) % 360
         facing = is_facing_viewer(self._angle)
@@ -136,7 +151,7 @@ class SpinningLogo(tk.Frame):
                 diamond.rotation,
             )
             spun_points = apply_spin_squish(base_points, self._axis_x, self._angle)
-            echo_points = offset_points(spun_points, ECHO_OFFSET_X, ECHO_OFFSET_Y)
+            echo_points = self._echo_points(spun_points)
 
             self.canvas.coords(diamond.echo_id, _flatten(echo_points))
             self.canvas.itemconfig(diamond.echo_id, outline=echo_outline_color)

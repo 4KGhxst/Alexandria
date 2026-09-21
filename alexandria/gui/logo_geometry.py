@@ -78,6 +78,16 @@ def is_facing_viewer(angle_degrees: float) -> bool:
     return math.cos(math.radians(angle_degrees)) >= 0
 
 
+def scale_points(points: list[Point], center: Point, factor: float) -> list[Point]:
+    """Scales points toward/away from `center` by `factor`. Used to fake
+    perspective: a smaller copy of the same shape reads as farther away,
+    which is what actually makes an offset "back" layer look like it has
+    real depth instead of just being a same-size shape nudged sideways
+    (a same-size shift alone reads as a shadow, not distance)."""
+    center_x, center_y = center
+    return [(center_x + (x - center_x) * factor, center_y + (y - center_y) * factor) for x, y in points]
+
+
 def offset_points(points: list[Point], dx: float, dy: float) -> list[Point]:
     """Translates every point by (dx, dy) — used to build the "back" face
     of a fake-extruded shape a fixed distance behind the front face, the

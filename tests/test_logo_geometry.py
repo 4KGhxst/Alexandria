@@ -9,6 +9,7 @@ from alexandria.gui.logo_geometry import (
     pinwheel_diamond_centers,
     pinwheel_diamond_rotation,
     rotate_points,
+    scale_points,
     shade_color,
 )
 
@@ -144,6 +145,32 @@ def test_offset_points_translates_by_dx_dy():
     points = [(10, 5), (20, 15)]
     result = offset_points(points, dx=3, dy=-2)
     assert result == [(13, 3), (23, 13)]
+
+
+def test_scale_points_shrinks_toward_center():
+    points = [(20, 0), (0, 20)]
+    result = scale_points(points, center=(0, 0), factor=0.5)
+    assert result == [(10, 0), (0, 10)]
+
+
+def test_scale_points_at_factor_one_is_unchanged():
+    points = [(10, 5), (20, 15)]
+    result = scale_points(points, center=(3, 4), factor=1.0)
+    for (ox, oy), (rx, ry) in zip(points, result):
+        assert math.isclose(ox, rx, abs_tol=1e-9)
+        assert math.isclose(oy, ry, abs_tol=1e-9)
+
+
+def test_scale_points_leaves_the_center_point_itself_unchanged():
+    points = [(50, 50)]
+    result = scale_points(points, center=(50, 50), factor=0.3)
+    assert result == [(50, 50)]
+
+
+def test_scale_points_does_not_mutate_input():
+    points = [(10, 5)]
+    scale_points(points, center=(0, 0), factor=0.5)
+    assert points == [(10, 5)]
 
 
 def test_offset_points_does_not_mutate_input():
