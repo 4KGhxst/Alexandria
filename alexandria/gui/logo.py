@@ -61,6 +61,17 @@ PINWHEEL_RADIUS = 35
 SPIN_DEGREES_PER_FRAME = 6
 FRAME_MS = 40
 
+# The pinwheel's own geometry (see the clipping sweep in ARCHITECTURE.md)
+# only ever reaches ~y=37 to ~y=140 within a CANVAS_SIZE-square coordinate
+# space centered on axis_x/center_y=CANVAS_SIZE/2 — the diamonds simply
+# don't extend anywhere near a full square's bottom edge. The Canvas
+# *widget* is drawn shorter than CANVAS_SIZE (hugging that real content
+# height, plus a small buffer) so the wordmark packed right below it
+# isn't sitting behind ~70px of empty canvas first; axis_x/center_y stay
+# computed from the full CANVAS_SIZE so the actual diamond math/position
+# is untouched, only the widget's visible height shrinks.
+CANVAS_DISPLAY_HEIGHT = 150
+
 OUTLINE_COLOR = "#ef4444"
 OUTLINE_WIDTH = 2
 
@@ -96,7 +107,7 @@ class SpinningLogo(tk.Frame):
         self._center_y = CANVAS_SIZE / 2
 
         self.canvas = tk.Canvas(
-            self, width=CANVAS_SIZE, height=CANVAS_SIZE, bg=theme.BG, highlightthickness=0
+            self, width=CANVAS_SIZE, height=CANVAS_DISPLAY_HEIGHT, bg=theme.BG, highlightthickness=0
         )
         self.canvas.pack()
 

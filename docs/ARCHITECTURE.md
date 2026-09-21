@@ -192,6 +192,17 @@ emblem, which preserves those margins rather than invalidating them,
 since it's a uniform scale of the whole geometry around the same shared
 center.
 
+The pinwheel's own shape never reaches anywhere near the bottom of that
+square coordinate space — at the current (scaled) constants it only
+spans roughly y=37 to y=140 out of a 208-tall square. `axis_x`/`center_y`
+still get computed from the full `CANVAS_SIZE` (so the diamond math/
+position is untouched), but the Canvas *widget* itself is drawn at a
+separate, shorter `CANVAS_DISPLAY_HEIGHT` (150) that hugs that real
+content height plus a small buffer — otherwise the wordmark packed right
+below the canvas sits behind ~70px of empty, unused canvas first, which
+reads as a much bigger gap between the logo and the name than actually
+intended.
+
 Every layer (main, echo, connectors) is computed from the *same*
 `self._angle` value inside one `_animate()` tick — critically, this is a
 single shared piece of state driving all of it, not several
