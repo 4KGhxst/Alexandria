@@ -321,6 +321,32 @@ injected into the system prompt alongside the mood label itself, so the
 model has something concrete to act on rather than just a number to guess
 a tone from.
 
+### Humor: trait → concrete delivery instructions
+
+Same problem, same fix, but for the static `humor` trait instead of a
+live emotion: `traits.describe()`'s "quick with a joke" vs. "mostly
+serious" is a label, not something the model can act on consistently.
+`personality/traits.py`'s `humor_directive()` banks the 0..1 `humor`
+float into four concrete behaviors — from genuinely funny (puns,
+self-deprecating "old 90s car" jokes, callbacks to earlier in the
+conversation, land-and-move-on) down to basically deadpan — and that
+directive is injected into the system prompt right alongside the speech
+style one.
+
+### Conversational skills
+
+A fixed block in `persona.py` (not trait-gated — this applies regardless
+of where humor/mood happen to sit) pushes the model to act like an
+actual conversation partner instead of a Q&A machine: react to what was
+actually said before answering the literal question in it, have genuine
+opinions/reactions rather than staying neutral, vary how a reply opens
+instead of falling into the same formulaic phrasing every time, callback
+naturally to earlier parts of the conversation when relevant (conversation
+memory is already passed in — see below), allow light teasing/banter
+since this is a driver Bibi actually knows, and ask a natural follow-up
+when one's obviously there rather than just stopping dead — without
+forcing one onto every single reply.
+
 ### Three kinds of memory, kept deliberately separate
 
 - **`core/conversation.py` (`ConversationMemory`)** — the last ~10

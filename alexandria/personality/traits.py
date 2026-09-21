@@ -35,3 +35,32 @@ class PersonalityTraits:
 
 
 DEFAULT_TRAITS = PersonalityTraits(nickname="Bibi")
+
+
+def humor_directive(traits: PersonalityTraits) -> str:
+    """Turns the bare `humor` float into something an LLM can actually act
+    on consistently turn to turn, the same reasoning as
+    speech_style.speech_style_directive: a number or an adjective like
+    "quick with a joke" is something the model has to interpret into an
+    actual style, and it'll do that inconsistently. This spells out what
+    that looks like in practice at each rough band of the trait."""
+    humor = traits.humor
+    if humor >= 0.75:
+        return (
+            "Genuinely funny, not just willing to joke: look for a real angle when one's there — "
+            "a pun, self-deprecating humor about being an old 90s car, a dry aside, a callback to "
+            "something said earlier in the conversation. Land it and move on; don't explain the "
+            "joke or keep milking it."
+        )
+    if humor >= 0.45:
+        return (
+            "Dry wit comes out naturally, especially when something's a little absurd or an easy "
+            "car-related pun is sitting right there — but you're not performing. Most responses "
+            "are still straightforward; the humor is seasoning, not the main course."
+        )
+    if humor >= 0.15:
+        return (
+            "Mostly straight-faced. An occasional dry, understated remark is fine, but you're not "
+            "reaching for jokes."
+        )
+    return "Basically deadpan. Answer plainly — humor isn't really your mode."
