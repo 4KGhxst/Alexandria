@@ -66,11 +66,12 @@ FRAME_MS = 40
 # space centered on axis_x/center_y=CANVAS_SIZE/2 — the diamonds simply
 # don't extend anywhere near a full square's bottom edge. The Canvas
 # *widget* is drawn shorter than CANVAS_SIZE (hugging that real content
-# height, plus a small buffer) so the wordmark packed right below it
-# isn't sitting behind ~70px of empty canvas first; axis_x/center_y stay
-# computed from the full CANVAS_SIZE so the actual diamond math/position
-# is untouched, only the widget's visible height shrinks.
-CANVAS_DISPLAY_HEIGHT = 150
+# height, with only a few px of buffer) so the wordmark packed right
+# below it isn't sitting behind a stretch of empty canvas first;
+# axis_x/center_y stay computed from the full CANVAS_SIZE so the actual
+# diamond math/position is untouched, only the widget's visible height
+# shrinks.
+CANVAS_DISPLAY_HEIGHT = 143
 
 OUTLINE_COLOR = "#ef4444"
 OUTLINE_WIDTH = 2
@@ -144,7 +145,7 @@ class SpinningLogo(tk.Frame):
             fg=OUTLINE_COLOR,
             font=(theme.FONT_FAMILY, WORDMARK_FONT_SIZE, "bold"),
         )
-        self.wordmark.pack(pady=(4, 0))
+        self.wordmark.pack(pady=(0, 0))
 
         self._animate()
 
