@@ -234,13 +234,9 @@ restart until you delete it.
 - **GUI** (`alexandria/gui/`) — a tkinter desktop window (`python -m
   alexandria.gui`) as an alternative front end to the terminal: same
   Orchestrator, a dark-themed chat log (colored bubbles, her replies vs.
-  yours) + text box instead of stdin/stdout, over an animated spinning
-  three-diamond emblem (`logo.py`/`logo_geometry.py`) and "MizuBibi"
-  wordmark that fill the whole window as a background layer (the chat
-  log, status line, and entry bar are opaque panels placed on top of it
-  — tkinter has no true transparency, so the spin only actually shows
-  through in the margins around them). The emblem rescales/recenters
-  itself as the window resizes. `theme.py` holds the color palette;
+  yours) + text box instead of stdin/stdout, topped with an animated
+  spinning three-diamond emblem (`logo.py`/`logo_geometry.py`) and
+  "MizuBibi" wordmark. `theme.py` holds the color palette;
   `formatting.py`/`logo_geometry.py` have the pure display/animation
   logic kept tkinter-free so they're unit-testable.
   Built directly against `Orchestrator` rather than the voice interfaces,

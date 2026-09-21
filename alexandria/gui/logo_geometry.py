@@ -124,15 +124,6 @@ def extrusion_side_quads(front_points: list[Point], back_points: list[Point]) ->
     ]
 
 
-def scale_for_canvas(width: float, height: float, base_size: float, minimum: float = 0.3) -> float:
-    """How much to scale the emblem so it fills whatever canvas it's
-    actually drawn on, given the constants (diamond size, radius, etc.)
-    were tuned for a `base_size`-pixel square canvas. `minimum` guards
-    against a degenerate/near-zero canvas (e.g. mid-resize) collapsing
-    the emblem to nothing."""
-    return max(min(width, height) / base_size, minimum)
-
-
 def shade_color(hex_color: str, factor: float) -> str:
     """Darkens (factor < 1) or lightens (factor > 1, clamped to 255) a
     "#rrggbb" color by a multiplier — used to shade each diamond's own

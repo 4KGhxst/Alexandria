@@ -9,7 +9,6 @@ from alexandria.gui.logo_geometry import (
     pinwheel_diamond_centers,
     pinwheel_diamond_rotation,
     rotate_points,
-    scale_for_canvas,
     scale_points,
     shade_color,
 )
@@ -234,25 +233,3 @@ def test_extrusion_side_quads_connects_matching_edge_correctly():
     # The first quad should connect front[0]->front[1] with the
     # corresponding back points, in matching order (not crossed/twisted).
     assert quads[0] == [(0, 0), (10, 0), (12, 2), (2, 2)]
-
-
-def test_scale_for_canvas_is_one_at_the_base_size():
-    assert math.isclose(scale_for_canvas(130, 130, base_size=130), 1.0)
-
-
-def test_scale_for_canvas_scales_up_for_a_bigger_canvas():
-    assert math.isclose(scale_for_canvas(260, 260, base_size=130), 2.0)
-
-
-def test_scale_for_canvas_uses_the_smaller_dimension():
-    # A wide-but-short canvas should scale to fit the constrained
-    # dimension, not overflow it by scaling off the larger one.
-    assert math.isclose(scale_for_canvas(1000, 65, base_size=130), 0.5)
-
-
-def test_scale_for_canvas_never_goes_below_the_minimum():
-    assert scale_for_canvas(1, 1, base_size=130, minimum=0.3) == 0.3
-
-
-def test_scale_for_canvas_respects_a_custom_minimum():
-    assert scale_for_canvas(0, 0, base_size=130, minimum=0.1) == 0.1
