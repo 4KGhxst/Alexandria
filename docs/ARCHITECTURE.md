@@ -134,18 +134,21 @@ The three-diamond arrangement is original geometry built from scratch
 (`pinwheel_diamond_centers`), not a reproduction of any brand's actual
 trademarked logo artwork.
 
-Each diamond is also fake-extruded to fight the inherent flatness of 2D
-canvas shapes — the classic 90s-CGI-logo trick: `offset_points` builds a
-copy of the current front-face points shifted by a fixed screen-space
-depth vector (`EXTRUDE_DX`/`EXTRUDE_DY`, deliberately *not* re-rotated
-with the spin — a constant bevel direction is simpler and reads fine
-stylistically), `extrusion_side_quads` connects each corresponding
-front/back edge into a quad, and those quads are drawn in a darker shade
-*before* the front face — since tkinter Canvas stacks items in creation
-order, drawing the front face last means its fill covers the seam,
-making four flat quads plus a flat front face read as one solid beveled
-block. No real Z-axis or 3D rendering anywhere in this — every "depth"
-cue here is either a fixed 2D offset or a cosine-scaled squish.
+Rendering is currently a wireframe: `fill=""` on each polygon (Canvas's
+own "draw no fill" — whatever's beneath shows through, so the interior is
+genuinely transparent, not just background-colored) with a single red
+`outline` shared by all three diamonds, darkened via `shade_color` on the
+"back" half of the spin for a depth cue without any fill at all. An
+earlier iteration fake-extruded each diamond into a solid beveled block
+(the classic 90s-CGI-logo trick: `offset_points` shifts a copy of the
+front-face points by a fixed depth vector, `extrusion_side_quads`
+connects each front/back edge into a darker quad, drawn *before* the
+front face so Canvas's creation-order stacking covers the seam) — that
+approach is still in `logo_geometry.py`, fully tested, just not called
+from `logo.py` right now, in case the solid-fill look gets revisited.
+Either way, no real Z-axis or 3D rendering is involved — every "depth"
+cue here is a fixed 2D offset, a cosine-scaled squish, or a darkened
+outline/fill.
 
 The geometry (`logo_geometry.py`) has no tkinter import and is fully
 unit-tested; `logo.py`'s `SpinningLogo` (a `tk.Frame` subclass) is what
