@@ -64,12 +64,27 @@ def rotate_points(points: list[Point], center: Point, angle_degrees: float) -> l
     return rotated
 
 
-def apply_spin_squish(points: list[Point], axis_x: float, angle_degrees: float) -> list[Point]:
-    """Horizontally scales each point's offset from a shared vertical axis
-    by cos(angle) — the faux-3D spin. Returns new points; doesn't mutate
+def apply_spin_squish(points: list[Point], axis_x: float, angle_degrees: float, depth: float = 0.0) -> list[Point]:
+    """Projects points rotating rigidly around a shared vertical axis,
+    the faux-3D spin. `depth` is how far behind (positive) or in front
+    (negative) of the reference plane (depth=0) these particular points
+    actually sit in the fake "3D" space — this is what real rotation
+    around a Y-axis does to a point's screen X position:
+    screen_x = axis_x + (x - axis_x) * cos(angle) + depth * sin(angle)
+
+    At depth=0 this is exactly the plain squish (the reference/front
+    plane, e.g. cos(angle)-only scaling). The useful part is what happens
+    for depth != 0: at angle 0 or 180 (facing straight toward or away
+    from the viewer) sin(angle) is 0, so the depth term vanishes and a
+    point genuinely directly behind another lands at the *exact same*
+    screen position — true occlusion, not an offset. Depth only becomes
+    visible as the angle turns away from those points, which is what
+    real parallax looks like, unlike a fixed pixel offset that's always
+    visible regardless of rotation. Returns new points; doesn't mutate
     the input list."""
-    scale_x = math.cos(math.radians(angle_degrees))
-    return [(axis_x + (x - axis_x) * scale_x, y) for x, y in points]
+    theta = math.radians(angle_degrees)
+    cos_t, sin_t = math.cos(theta), math.sin(theta)
+    return [(axis_x + (x - axis_x) * cos_t + depth * sin_t, y) for x, y in points]
 
 
 def is_facing_viewer(angle_degrees: float) -> bool:

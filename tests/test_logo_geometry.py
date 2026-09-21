@@ -109,6 +109,45 @@ def test_spin_squish_preserves_y_and_does_not_mutate_input():
     assert points == [(10, 5)]  # original list untouched
 
 
+def test_spin_squish_default_depth_matches_no_depth_argument():
+    points = [(10, 5), (30, 15)]
+    for angle in (0, 37, 90, 180, 271):
+        default = apply_spin_squish(points, axis_x=0, angle_degrees=angle)
+        explicit_zero = apply_spin_squish(points, axis_x=0, angle_degrees=angle, depth=0.0)
+        assert default == explicit_zero
+
+
+def test_spin_squish_depth_vanishes_when_facing_the_viewer():
+    # A point genuinely behind another (same x, y, different depth) must
+    # land at the exact same screen position at angle 0 or 180 — that's
+    # what "directly behind, no offset" actually means: true occlusion,
+    # only separating as the shape turns away from facing the viewer.
+    points = [(10, 5)]
+    for angle in (0, 180, 360):
+        (fx, fy) = apply_spin_squish(points, axis_x=0, angle_degrees=angle, depth=0.0)[0]
+        (bx, by) = apply_spin_squish(points, axis_x=0, angle_degrees=angle, depth=25.0)[0]
+        assert math.isclose(fx, bx, abs_tol=1e-9)
+        assert math.isclose(fy, by, abs_tol=1e-9)
+
+
+def test_spin_squish_depth_separates_away_from_zero_and_180():
+    points = [(10, 5)]
+    front = apply_spin_squish(points, axis_x=0, angle_degrees=45, depth=0.0)
+    behind = apply_spin_squish(points, axis_x=0, angle_degrees=45, depth=25.0)
+    assert front != behind
+    assert not math.isclose(front[0][0], behind[0][0], abs_tol=1e-9)
+
+
+def test_spin_squish_depth_at_90_degrees_shifts_by_the_full_depth():
+    # At the edge-on point cos(90)=0, so the reference plane collapses
+    # exactly onto the axis — a point at `depth` behind it should show up
+    # exactly `depth` away from the axis, the full parallax swing.
+    points = [(10, 5)]
+    result = apply_spin_squish(points, axis_x=0, angle_degrees=90, depth=25.0)
+    (x, _y) = result[0]
+    assert math.isclose(x, 25.0, abs_tol=1e-9)
+
+
 def test_is_facing_viewer_true_at_zero_degrees():
     assert is_facing_viewer(0) is True
 

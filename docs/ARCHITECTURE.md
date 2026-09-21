@@ -140,30 +140,46 @@ genuinely transparent, not just background-colored) with a single red
 `outline` shared by all three diamonds, darkened via `shade_color` on the
 "back" half of the spin for a depth cue without any fill at all.
 
-There are two full copies of the emblem: the main one, and a dimmer
-"echo" copy sitting above it on the same horizontal axis
-(`SpinningLogo._echo_points`, `ECHO_OFFSET_X` is 0 so there's no
-diagonal drift) and stacked underneath via Canvas's creation-order
-z-ordering (echo polygons created first). A connector line is drawn
-between each corresponding corner of the two shapes (`zip(points,
-echo_points)`, one line per vertex) — the classic wireframe-box look, two
-matching outlines with straight struts between them standing in for the
-edges a real 3D renderer would draw between a front and back face.
+There are two full copies of the emblem, at the same size, with no
+screen-space offset between them at all — the echo layer is meant to be
+*directly* behind the main one, not shifted sideways or up. That ruled
+out both of the first two attempts at this: a fixed pixel offset just
+looks like a shadow (visible at every angle, including head-on, which a
+real "behind" object wouldn't be), and shrinking the echo to fake
+perspective violates "exact same size" outright.
 
-A same-size copy just shifted upward reads as a flat shadow, not real
-depth — `_echo_points` fixes that by composing two transforms:
-`scale_points` shrinks the copy toward the shared axis center first
-(`ECHO_SCALE`; a smaller copy reads as farther away, the basic
-perspective cue), *then* `offset_points` shifts the now-smaller copy up
-(`ECHO_OFFSET_Y`). Both constants got pushed further than the first pass
-(offset from -8 to -26, plus the new 0.72 scale) specifically because the
-first version still read as flat — `CANVAS_SIZE` and `_center_y` were
-adjusted alongside them (140 and `CANVAS_SIZE/2 + 10`, up from 110 and
-`CANVAS_SIZE/2 - 6`) so the taller/wider spread of points from the bigger
-offset doesn't clip against the canvas edge; a small script computing the
-real point extents with the final constants (not just eyeballing it)
-confirmed x stays within roughly 34–106 and y within 24–102 against a
-140×140 canvas before shipping the change.
+The actual fix was extending `apply_spin_squish` with a real depth
+coordinate instead of reaching for another screen-space trick:
+
+```
+screen_x = axis_x + (x - axis_x) * cos(angle) + depth * sin(angle)
+```
+
+This is what genuine rotation around a shared vertical (Y) axis does to
+a point that sits `depth` units behind the reference plane (`depth=0`,
+the old squish-only formula). The payoff is in what happens at the
+angles where the emblem faces the viewer head-on: `sin(angle)` is 0
+there, so the depth term vanishes completely and a point genuinely
+behind another lands at the *exact same* screen position — true
+occlusion, matching "directly behind" literally, not approximately. Depth
+only becomes visible as the angle turns away from facing the viewer,
+which is what real parallax looks like; a fixed offset can't reproduce
+that appear-and-disappear behavior because it has no relationship to the
+rotation at all. `test_spin_squish_depth_vanishes_when_facing_the_viewer`
+and `test_spin_squish_depth_at_90_degrees_shifts_by_the_full_depth` pin
+down both ends of that behavior directly.
+
+Concretely: `SpinningLogo` computes `front_points = apply_spin_squish(...,
+depth=0.0)` and `echo_points = apply_spin_squish(..., depth=ECHO_DEPTH)`
+from the *same* base diamond points every frame — same shape, same
+size, the only difference is which depth gets passed in. Connector
+lines between each corresponding front/echo corner are drawn from these
+same two point sets, so they collapse to zero-length at the head-on
+angles right along with the shapes they connect, and stretch out as
+depth becomes visible. `CANVAS_SIZE`/the shared axis center were sized
+by sweeping the real geometry functions across a full 0–360 rotation
+(not just eyeballing a couple of angles) to confirm nothing clips: x
+stays within roughly 22–108, y within 23–87, against a 130×130 canvas.
 
 Every layer (main, echo, connectors) is computed from the *same*
 `self._angle` value inside one `_animate()` tick — critically, this is a
