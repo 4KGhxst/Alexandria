@@ -40,6 +40,30 @@ def pinwheel_diamond_centers(center_x: float, center_y: float, radius: float) ->
     return centers
 
 
+def pinwheel_diamond_rotation(index: int) -> float:
+    """The rotation (degrees) that points a diamond's long axis radially
+    outward at pinwheel position `index` (0, 1, 2) — matching
+    pinwheel_diamond_centers' spacing, so each diamond's shape points the
+    same direction its center sits away from the shared axis (one
+    straight up, the other two angled down-left/down-right), instead of
+    every diamond staying upright regardless of where it's positioned."""
+    return -index * 120
+
+
+def rotate_points(points: list[Point], center: Point, angle_degrees: float) -> list[Point]:
+    """Rotates points around `center` by angle_degrees, clockwise in
+    standard screen coordinates (y increases downward). Returns new
+    points; doesn't mutate the input."""
+    theta = math.radians(angle_degrees)
+    cos_t, sin_t = math.cos(theta), math.sin(theta)
+    center_x, center_y = center
+    rotated = []
+    for x, y in points:
+        dx, dy = x - center_x, y - center_y
+        rotated.append((center_x + dx * cos_t - dy * sin_t, center_y + dx * sin_t + dy * cos_t))
+    return rotated
+
+
 def apply_spin_squish(points: list[Point], axis_x: float, angle_degrees: float) -> list[Point]:
     """Horizontally scales each point's offset from a shared vertical axis
     by cos(angle) — the faux-3D spin. Returns new points; doesn't mutate

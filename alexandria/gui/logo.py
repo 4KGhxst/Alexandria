@@ -1,5 +1,8 @@
-"""An animated header emblem: three diamonds in a pinwheel, spinning via
-the faux-3D trick in logo_geometry.py, with a static wordmark underneath.
+"""An animated header emblem: three diamonds arranged like a tripod/peace
+sign (one pointing straight up, the other two angled down-left and
+down-right, each rotated to point outward from a shared center), spinning
+via the faux-3D trick in logo_geometry.py, with a static wordmark
+underneath.
 
 An original geometric design — not a reproduction of any brand's actual
 trademarked logo artwork.
@@ -15,6 +18,8 @@ from alexandria.gui.logo_geometry import (
     diamond_points,
     is_facing_viewer,
     pinwheel_diamond_centers,
+    pinwheel_diamond_rotation,
+    rotate_points,
     shade_color,
 )
 
@@ -47,12 +52,15 @@ class SpinningLogo(tk.Frame):
         )
         self.canvas.pack()
 
-        self._diamonds: list[tuple[int, tuple[float, float], str]] = []
+        self._diamonds: list[tuple[int, tuple[float, float], str, float]] = []
         centers = pinwheel_diamond_centers(self._axis_x, center_y, PINWHEEL_RADIUS)
-        for center, color in zip(centers, DIAMOND_COLORS):
-            points = diamond_points(center[0], center[1], DIAMOND_WIDTH, DIAMOND_HEIGHT)
+        for i, (center, color) in enumerate(zip(centers, DIAMOND_COLORS)):
+            rotation = pinwheel_diamond_rotation(i)
+            points = rotate_points(
+                diamond_points(center[0], center[1], DIAMOND_WIDTH, DIAMOND_HEIGHT), center, rotation
+            )
             polygon_id = self.canvas.create_polygon(_flatten(points), fill=color, outline="")
-            self._diamonds.append((polygon_id, center, color))
+            self._diamonds.append((polygon_id, center, color, rotation))
 
         self.wordmark = tk.Label(
             self,
@@ -69,8 +77,10 @@ class SpinningLogo(tk.Frame):
         self._angle = (self._angle + SPIN_DEGREES_PER_FRAME) % 360
         facing = is_facing_viewer(self._angle)
 
-        for polygon_id, center, base_color in self._diamonds:
-            base_points = diamond_points(center[0], center[1], DIAMOND_WIDTH, DIAMOND_HEIGHT)
+        for polygon_id, center, base_color, rotation in self._diamonds:
+            base_points = rotate_points(
+                diamond_points(center[0], center[1], DIAMOND_WIDTH, DIAMOND_HEIGHT), center, rotation
+            )
             spun_points = apply_spin_squish(base_points, self._axis_x, self._angle)
             color = base_color if facing else shade_color(base_color, BACK_SHADE_FACTOR)
             self.canvas.coords(polygon_id, _flatten(spun_points))

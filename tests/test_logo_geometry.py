@@ -5,6 +5,8 @@ from alexandria.gui.logo_geometry import (
     diamond_points,
     is_facing_viewer,
     pinwheel_diamond_centers,
+    pinwheel_diamond_rotation,
+    rotate_points,
     shade_color,
 )
 
@@ -39,6 +41,40 @@ def test_pinwheel_centers_are_120_degrees_apart():
     for x, y in centers:
         distance = math.hypot(x, y)
         assert math.isclose(distance, 10, rel_tol=1e-9)
+
+
+def test_pinwheel_diamond_rotation_first_diamond_stays_upright():
+    assert pinwheel_diamond_rotation(0) == 0
+
+
+def test_rotate_points_by_zero_degrees_is_unchanged():
+    points = [(10, 5), (20, 15)]
+    result = rotate_points(points, center=(0, 0), angle_degrees=0)
+    for (ox, oy), (rx, ry) in zip(points, result):
+        assert math.isclose(ox, rx, abs_tol=1e-9)
+        assert math.isclose(oy, ry, abs_tol=1e-9)
+
+
+def test_rotate_points_does_not_mutate_input():
+    points = [(10, 5)]
+    rotate_points(points, center=(0, 0), angle_degrees=90)
+    assert points == [(10, 5)]
+
+
+def test_pinwheel_rotation_points_each_diamond_outward_from_center():
+    # Applying each diamond's own rotation to the default "up" tip of a
+    # diamond centered at the origin should land it pointing the same
+    # direction its actual pinwheel center sits away from the shared axis
+    # — i.e. diamond 0 straight up, diamond 1 down-left, diamond 2
+    # down-right, matching pinwheel_diamond_centers' layout.
+    centers = pinwheel_diamond_centers(center_x=0, center_y=0, radius=1)
+    up_tip = [(0, -1)]  # the "top" point of an unrotated diamond
+
+    for index, (expected_x, expected_y) in enumerate(centers):
+        rotation = pinwheel_diamond_rotation(index)
+        (rotated_x, rotated_y) = rotate_points(up_tip, center=(0, 0), angle_degrees=rotation)[0]
+        assert math.isclose(rotated_x, expected_x, abs_tol=1e-9)
+        assert math.isclose(rotated_y, expected_y, abs_tol=1e-9)
 
 
 def test_spin_squish_at_zero_degrees_is_unchanged():

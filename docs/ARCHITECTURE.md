@@ -105,17 +105,34 @@ is running.
 ### Spinning logo
 
 `gui/logo_geometry.py` + `gui/logo.py` render an animated header emblem —
-three diamonds, each the same (unrotated) shape but a distinct fixed
-color (`DIAMOND_COLORS`), spinning via a classic 2D-canvas trick rather
-than any real 3D rendering: every point's x-offset from a shared vertical
-axis gets scaled by `cos(angle)` each frame (`apply_spin_squish`), which
-reads as a rigid shape rotating in 3D — it flattens to a sliver edge-on
-and each diamond darkens to its own shaded variant (`is_facing_viewer` +
-`shade_color`, not a swap to some other diamond's color, so each one
-keeps its own identity through the whole spin) past that point, the same
-illusion as a spinning coin. The three-diamond arrangement is original
-geometry built from scratch (`pinwheel_diamond_centers`), not a
-reproduction of any brand's actual trademarked logo artwork.
+three diamonds arranged like a tripod/peace sign (one pointing straight
+up, the other two angled down-left and down-right), each with a distinct
+fixed color (`DIAMOND_COLORS`). Two rotations are composed on each
+diamond, for two different reasons:
+
+1. **A static, per-diamond rotation** (`pinwheel_diamond_rotation`,
+   applied via `rotate_points`) points each diamond's own long axis
+   radially outward — diamond 0 stays upright (its center already sits
+   straight up from the shared axis), diamond 1 is rotated 120° so its
+   axis points down-left to match where *its* center sits, diamond 2
+   rotated 240° for down-right. Without this, all three diamonds would
+   stay upright regardless of position, which doesn't read as the
+   intended silhouette at all — `test_pinwheel_rotation_points_each_diamond_outward_from_center`
+   verifies the rotation actually lands each diamond's tip in the same
+   direction its center sits, not just that the formula looks plausible.
+2. **The animated "3D spin"** (`apply_spin_squish`) — a classic 2D-canvas
+   trick, not real 3D rendering: every point's x-offset from a shared
+   vertical axis gets scaled by `cos(angle)` each frame, on top of the
+   static rotation above, so the whole tripod shape spins together as
+   one rigid emblem. It flattens to a sliver edge-on and each diamond
+   darkens to its own shaded variant (`is_facing_viewer` + `shade_color`,
+   not a swap to some other diamond's color, so each one keeps its own
+   identity through the whole spin) past that point, the same illusion
+   as a spinning coin.
+
+The three-diamond arrangement is original geometry built from scratch
+(`pinwheel_diamond_centers`), not a reproduction of any brand's actual
+trademarked logo artwork.
 
 The geometry (`logo_geometry.py`) has no tkinter import and is fully
 unit-tested; `logo.py`'s `SpinningLogo` (a `tk.Frame` subclass) is what
